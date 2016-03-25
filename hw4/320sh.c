@@ -1,9 +1,11 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include "myHeader.h"
 // Assume no input line will be longer than 1024 bytes
 #define MAX_INPUT 1024
+#define MAX_ARG 128
 
 int 
 main (int argc, char ** argv, char **envp) {
@@ -34,7 +36,7 @@ main (int argc, char ** argv, char **envp) {
 	  cursor = cmd, last_char = 1;
 	  rv 
 	  && (++count < (MAX_INPUT-1))
-	  && (last_char ! = '\n');
+	  && (last_char != '\n');
 	cursor++) { 
 
       rv = read(0, cursor, 1);
@@ -63,7 +65,7 @@ main (int argc, char ** argv, char **envp) {
     // Execute the command, handling built-in commands separately 
     // Just echo the command line for now
     // write(1, cmd, strnlen(cmd, MAX_INPUT));
-
+	eva(cmd);
   }
 
   return 0;
@@ -74,12 +76,39 @@ void eva(char* cmd){
 		char *argv[MAX_ARG]; /*Argument list*/
 		char buf[MAX_INPUT]; /*Copy of command line*/
 		int job;			 /*hold job type, background if 0, foreground otherwise*/
-		pid_t pid;			 /*new process id*/
+		//pid_t pid;			 /*new process id*/
 		
+		strcpy(buf, cmd);
+
+		/*parse command line*/
+		job = parse(buf,argv);
+		int i = 0;
+		printf("job = %d\n",job);
+		while(argv[i]!=NULL){
+			fprintf(stdout,"argument %d is : %s\n",i,argv[i]);
+			i++;
+		}
+		/*check to see if command if build in*/
+		if(!buildIn(argv[0])){
+			/*build in function, handle them*/
+			if(strcmp(argv[0],"exit")){
+				/*exit program*/
+				write(1,"PROGRAM EXITING",15);
+				printf("IM here");
+				exit(EXIT_SUCCESS);
+			}				
 		
-	}
+		}else{
+		/*not build in commnad*/
+			
+		}
+			
+		
+}
 	
-	
+int buildIn(char * cmd){
+	return 0;
+}
 int parse(char buf[],char *argv[]){
 
 
