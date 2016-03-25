@@ -10,7 +10,7 @@ main (int argc, char ** argv, char **envp) {
 
   int finished = 0;
   char *prompt = "320sh> ";
-  char cmd[MAX_INPUT];
+  char cmd[MAX_INPUT];;
   int index = 0;
 
 
@@ -23,7 +23,7 @@ main (int argc, char ** argv, char **envp) {
 
 
     // Print the prompt
-    rv = write(1, prompt, strlen(prompt));
+    rv = write(1, prompt, strlen(prompt));;
     if (!rv) { 
       finished = 1;
       break;
@@ -34,7 +34,7 @@ main (int argc, char ** argv, char **envp) {
 	  cursor = cmd, last_char = 1;
 	  rv 
 	  && (++count < (MAX_INPUT-1))
-	  && (last_char != '\n');
+	  && (last_char ! = '\n');
 	cursor++) { 
 
       rv = read(0, cursor, 1);
@@ -68,3 +68,59 @@ main (int argc, char ** argv, char **envp) {
 
   return 0;
 }
+
+int parse(char buf[],char *argv[]){
+
+
+  
+   const char s[2] = " ";
+   char *token;
+   int index =0;
+   /* get the first token */
+   token = strtok(buf, s);
+   
+   /* walk through other tokens */
+   while( token != NULL ) 
+   {
+    
+     argv[index]=token;
+     
+     token = strtok(NULL, s);
+
+     
+     index++;
+   }
+   
+	   
+	//set last index = NUll	
+	argv[index] = NULL;
+	
+	//background process condition
+	if(*argv[--index]=='&'){
+	argv[index] = NULL;
+	return 0;
+	}
+	
+	//foreground process
+	return 1;
+
+	
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
