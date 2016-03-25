@@ -83,20 +83,25 @@ void eva(char* cmd){
 		/*parse command line*/
 		job = parse(buf,argv);
 		int i = 0;
+
 		printf("job = %d\n",job);
 		while(argv[i]!=NULL){
 			fprintf(stdout,"argument %d is : %s\n",i,argv[i]);
 			i++;
 		}
+
 		/*check to see if command if build in*/
 		if(!buildIn(argv[0])){
 			/*build in function, handle them*/
-			if(strcmp(argv[0],"exit")){
+			
+			if(!strcmp(argv[0],"exit\n")){
+				
 				/*exit program*/
-				write(1,"PROGRAM EXITING",15);
-				printf("IM here");
+				write(1,"PROGRAM EXITING\n",17);
+
 				exit(EXIT_SUCCESS);
-			}				
+			}
+			if(strcmp(argv[0],"pwd")){}
 		
 		}else{
 		/*not build in commnad*/
@@ -113,7 +118,7 @@ int parse(char buf[],char *argv[]){
 
 
   
-   const char s[2] = " ";
+   const char s[1] = " ";
    char *token;
    int index =0;
    /* get the first token */
