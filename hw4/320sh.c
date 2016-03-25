@@ -69,6 +69,17 @@ main (int argc, char ** argv, char **envp) {
   return 0;
 }
 
+void eva(char* cmd){
+	
+		char *argv[MAX_ARG]; /*Argument list*/
+		char buf[MAX_INPUT]; /*Copy of command line*/
+		int job;			 /*hold job type, background if 0, foreground otherwise*/
+		pid_t pid;			 /*new process id*/
+		
+		
+	}
+	
+	
 int parse(char buf[],char *argv[]){
 
 

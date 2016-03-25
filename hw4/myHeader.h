@@ -1,4 +1,5 @@
-/**
+	
+	/**
 *Helper function to parse command line into argument list, also determine job type
 *@param char buf[]: command line 
 *@param char *argv[]: argument list
@@ -13,3 +14,10 @@ int parse(char buf[],char *argv[]);
 *@param char cmd[]: command line
 **/
 void eva(char cmd[]);
+
+/**
+*Helper function to check if command is build in
+*@param char* cmd
+*@return 0 if not build in, build in otherwise
+**/
+int buildIn(char cmd[]);
