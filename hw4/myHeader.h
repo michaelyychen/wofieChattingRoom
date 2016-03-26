@@ -21,3 +21,10 @@ void eva(char cmd[]);
 *@return 0 if not build in, build in otherwise
 **/
 int buildIn(char cmd[]);
+
+/**
+*Helper function to find path to binary file
+*@param char* file
+*return 0 if not found, 1 if found
+*//
+int findPath(char *file);
