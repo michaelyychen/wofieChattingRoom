@@ -8,7 +8,7 @@
 // Assume no input line will be longer than 1024 bytes
 #define MAX_INPUT 1024
 #define MAX_ARG 128
-
+extern char path[2056];
 
 int main (int argc, char ** argv, char **envp) {
 
@@ -17,6 +17,7 @@ int main (int argc, char ** argv, char **envp) {
   char cmd[MAX_INPUT];;
   int index = 0;
 
+  path = getenv("PATH");
 
 
   while (!finished) {
@@ -88,13 +89,11 @@ void eva(char* cmd){
 
 		printf("job = %d\n",job);
 		
+		int build_in = 0;
 		/*check to see if command is exit */
-			if(!strcmp(argv[0],"exit")){		
-				/*exit program*/
-				write(1,"PROGRAM EXITING\n",17);
-				exit(EXIT_SUCCESS);
-			}
-			else{
+		buildIn(cmd,build_in);
+			if(!build_in){		
+
 			/*find path of binary file*/
 				char newPath[1028] = "";
 				
@@ -104,11 +103,11 @@ void eva(char* cmd){
 					/*create a child and invoke function if path is not null*/
 					if((pid = fork()) == 0){
 						/*child process*/
-						char *environ[]= {NULL};
+						
 						#ifdef d
 							fprintf(stderr,"RUNNING : %s",cmd);
 						#endif
-						if(execve(newPath,argv,environ) < 0)
+						if(execve(newPath,argv,env) < 0)
 							printf("%s: command not found\n", argv[0]);
 						exit(0);
 					}else{
@@ -216,7 +215,7 @@ void findPath(char *path,char newPath[]){
   /*else find the absolute path*/
   else{
 	
-	temp = getenv("PATH");
+	
 	token = strtok(temp, s);
 	
 	//copy all paths to string array
@@ -255,7 +254,57 @@ int file_exist (const char *filePath)
 }
 
 
+void buildIn(char cmd[], int build_In){
 
+	if(!strcmp(argv[0],"exit")){		
+		/*exit program*/
+		write(1,"PROGRAM EXITING\n",17);
+		build_In = 1;
+		exit(EXIT_SUCCESS);
+	}else if(!strcmp(argv[0],"cd")){		
+		/*call cd program*/		
+		build_In = 1;
+		CD(cmd);
+	}else if(!strcmp(argv[0],"ls")){		
+		/*call ls program*/	
+		build_In = 1;
+		LS(cmd);
+	}else if(!strcmp(argv[0],"set")){		
+		/*call set program*/
+		build_In = 1;
+		SET(cmd);
+	}else if(!strcmp(argv[0],"pwd")){		
+		/*call pwd program*/
+		build_In = 1;
+		PWD(cmd);
+	}else if(!strcmp(argv[0],"echo")){		
+		/*call echo program*/
+		build_In = 1;
+		ECHO(cmd);
+	}else if(!strcmp(argv[0],"help")){		
+		/*call help program*/
+		build_In = 1;
+		HELP(cmd);
+	}
+}
+
+
+void CD(char *cmd){}
+
+
+void LS(char *cmd){}
+
+
+void ECHO(char *cmd){}
+
+
+void SET(char *cmd){}
+
+
+void PWD(char *cmd){}
+
+
+void HELP(){}
 
 
 
