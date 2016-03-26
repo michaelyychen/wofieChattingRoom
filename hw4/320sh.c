@@ -254,10 +254,6 @@ void buildIn(char* cmd[], int *build_In){
 		/*call cd program*/		
 		*build_In = 1;
 		CD(cmd);
-	}else if(!strcmp(cmd[0],"ls")){		
-		/*call ls program*/	
-		*build_In = 1;
-		LS(cmd);
 	}else if(!strcmp(cmd[0],"set")){		
 		/*call set program*/
 		*build_In = 1;
@@ -282,10 +278,6 @@ void CD(char *cmd[0]){
 	
 }
 
-
-void LS(char *cmd[0]){}
-
-
 void ECHO(char *cmd[0]){}
 
 
@@ -294,7 +286,7 @@ void SET(char *cmd[0]){
 	if(cmd[1] != NULL && !strcmp(cmd[2],"=") && cmd[3] == NULL)
 		fprintf(stderr,"Function set should be in format name = value");
 	else{
-		fprintf(stderr,"name = %s, value = %s\n");
+		fprintf(stderr,"name = %s, value = %s\n",cmd[1],cmd[3]);
 		/*first check if value overlap, if yes concat new value with previous value ans set again*/
 		char *prev = getenv(cmd[1]);
 		if(prev != NULL){
@@ -302,7 +294,7 @@ void SET(char *cmd[0]){
 			char newEnv[1024];
 			strcpy(newEnv,cmd[3]);
 			strcat(newEnv,prev);
-			fprintf(stderr,"new Path: %s",getenv(
+			fprintf(stderr,"new Path: %s",getenv("PATH"));
 		}else{
 			/*value not exist, add new value into env*/
 			if(!setenv(cmd[1],cmd[3],0))
