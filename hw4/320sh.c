@@ -8,7 +8,7 @@
 // Assume no input line will be longer than 1024 bytes
 #define MAX_INPUT 1024
 #define MAX_ARG 128
-extern char path[2056];
+char paths[2056];
 
 int main (int argc, char ** argv, char **envp) {
 
@@ -17,9 +17,8 @@ int main (int argc, char ** argv, char **envp) {
   char cmd[MAX_INPUT];;
   int index = 0;
 
-  strcmp(path,getenv("PATH"));
+  strcmp(paths,getenv("PATH"));
 
-	printf("%s\n",path);
   while (!finished) {
     char *cursor;
     char last_char;
@@ -91,9 +90,10 @@ void eva(char* cmd){
 		
 		int build_in = 0;
 		/*check to see if command is exit */
-		buildIn(cmd,build_in);
-			if(!build_in){		
+		buildIn(argv[0],&build_in);
 
+			if(build_in == 0){		
+			
 			/*find path of binary file*/
 				char newPath[1028] = "";
 				
@@ -193,7 +193,7 @@ int parse(char buf[],char *argv[]){
 
 void findPath(char *path,char newPath[]){
 
-  	char *temp;
+  	//char *temp;
 	char *token;
 	char *tokens[20];
  	char fullPath[1028]="";
@@ -216,7 +216,7 @@ void findPath(char *path,char newPath[]){
   else{
 	
 	
-	token = strtok(temp, s);
+	token = strtok(paths, s);
 	
 	//copy all paths to string array
 		while( token != NULL ) 
@@ -254,42 +254,44 @@ int file_exist (const char *filePath)
 }
 
 
-void buildIn(char cmd[], int build_In){
+void buildIn(char cmd[], int *build_In){
 
 	if(!strcmp(cmd,"exit")){		
 		/*exit program*/
 		write(1,"PROGRAM EXITING\n",17);
-		build_In = 1;
+		*build_In = 1;
 		exit(EXIT_SUCCESS);
 	}else if(!strcmp(cmd,"cd")){		
 		/*call cd program*/		
-		build_In = 1;
+		*build_In = 1;
 		CD(cmd);
 	}else if(!strcmp(cmd,"ls")){		
 		/*call ls program*/	
-		build_In = 1;
+		*build_In = 1;
 		LS(cmd);
 	}else if(!strcmp(cmd,"set")){		
 		/*call set program*/
-		build_In = 1;
+		*build_In = 1;
 		SET(cmd);
 	}else if(!strcmp(cmd,"pwd")){		
 		/*call pwd program*/
-		build_In = 1;
+		*build_In = 1;
 		PWD(cmd);
 	}else if(!strcmp(cmd,"echo")){		
 		/*call echo program*/
-		build_In = 1;
+		*build_In = 1;
 		ECHO(cmd);
 	}else if(!strcmp(cmd,"help")){		
 		/*call help program*/
-		build_In = 1;
+		*build_In = 1;
 		HELP(cmd);
 	}
 }
 
 
-void CD(char *cmd){}
+void CD(char *cmd){
+	
+}
 
 
 void LS(char *cmd){}
@@ -298,13 +300,28 @@ void LS(char *cmd){}
 void ECHO(char *cmd){}
 
 
-void SET(char *cmd){}
+void SET(char *cmd){
+	
+}
 
 
-void PWD(char *cmd){}
+void PWD(char *cmd){
+	char *pwd = malloc(100);
+	getcwd(pwd,100);
+	fprintf(stdout,"%s\n",pwd);
+	free(pwd);
+}
 
 
-void HELP(){}
+void HELP(){
+	fprintf(stdout,"CSE320 SHELL:\n \
+	cd					cd dicretory									\n \
+	ls					show all file name under current directory		\n \
+	set					set environ in format name=value				\n \
+	pwd					show current directory							\n \
+	echo					print string and expand environment variables	\n \
+	help					print help meun									\n");
+	}
 
 
 
