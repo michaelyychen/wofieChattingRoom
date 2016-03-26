@@ -41,31 +41,31 @@ int file_exist (const char *filePath);
 *Helper to build in function CD
 *@param char *cmd: command line
 **/
-void CD(char *cmd);
+void CD(char *cmd[0]);
 
 /**
 *Helper to build in function ls
 *@param char *cmd: command line
 **/
-void LS(char *cmd);
+void LS(char *cmd[0]);
 
 /**
 *Helper to build in function echo
 *@param char *cmd: command line
 **/
-void ECHO(char *cmd);
+void ECHO(char *cmd[0]);
 
 /**
 *Helper to build in function set
 *@param char *cmd: command line
 **/
-void SET(char *cmd);
+void SET(char *cmd[0]);
 
 /**
 *Helper to build in function pwd
-*@param char *cmd: command line
+=
 **/
-void PWD(char *cmd);
+void PWD();
 
 /**
 *Helper to build in function help

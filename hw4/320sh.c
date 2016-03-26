@@ -243,34 +243,34 @@ int file_exist (const char *filePath)
 }
 
 
-void buildIn(char cmd[], int *build_In){
+void buildIn(char* cmd[], int *build_In){
 
-	if(!strcmp(cmd,"exit")){		
+	if(!strcmp(cmd[0],"exit")){		
 		/*exit program*/
 		write(1,"PROGRAM EXITING\n",17);
 		*build_In = 1;
 		exit(EXIT_SUCCESS);
-	}else if(!strcmp(cmd,"cd")){		
+	}else if(!strcmp(cmd[0],"cd")){		
 		/*call cd program*/		
 		*build_In = 1;
 		CD(cmd);
-	}else if(!strcmp(cmd,"ls")){		
+	}else if(!strcmp(cmd[0],"ls")){		
 		/*call ls program*/	
 		*build_In = 1;
 		LS(cmd);
-	}else if(!strcmp(cmd,"set")){		
+	}else if(!strcmp(cmd[0],"set")){		
 		/*call set program*/
 		*build_In = 1;
 		SET(cmd);
-	}else if(!strcmp(cmd,"pwd")){		
+	}else if(!strcmp(cmd[0],"pwd")){		
 		/*call pwd program*/
 		*build_In = 1;
 		PWD(cmd);
-	}else if(!strcmp(cmd,"echo")){		
+	}else if(!strcmp(cmd[0],"echo")){		
 		/*call echo program*/
 		*build_In = 1;
 		ECHO(cmd);
-	}else if(!strcmp(cmd,"help")){		
+	}else if(!strcmp(cmd[0],"help")){		
 		/*call help program*/
 		*build_In = 1;
 		HELP(cmd);
@@ -278,23 +278,29 @@ void buildIn(char cmd[], int *build_In){
 }
 
 
-void CD(char *cmd){
+void CD(char *cmd[0]){
 	
 }
 
 
-void LS(char *cmd){}
+void LS(char *cmd[0]){}
 
 
-void ECHO(char *cmd){}
+void ECHO(char *cmd[0]){}
 
 
-void SET(char *cmd){
-	
+void SET(char *cmd[0]){
+	/*check if set arugments are valid*/
+	if(cmd[1] == NULL || cmd[2] != "=" || cmd[3] == NULL)
+		fprintf(stderr,"Function set should be in format name = value");
+	else{
+		/*first remove env, concat new value with previous value ans set again*/
+		if(
+	}
 }
 
 
-void PWD(char *cmd){
+void PWD(){
 	char *pwd = malloc(100);
 	getcwd(pwd,100);
 	fprintf(stdout,"%s\n",pwd);
@@ -325,7 +331,7 @@ void HELP(){
 	fprintf(stdout,"CSE320 SHELL:\n \
 	cd					cd dicretory									\n \
 	ls					show all file name under current directory		\n \
-	set					set environ in format name=value				\n \
+	set					set environ in format name = value				\n \
 	pwd					show current directory							\n \
 	echo					print string and expand environment variables	\n \
 	help					print help meun									\n");
