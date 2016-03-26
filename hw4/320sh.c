@@ -87,53 +87,63 @@ void eva(char* cmd){
 		int i = 0;
 
 		printf("job = %d\n",job);
-		while(argv[i]!=NULL){
-			fprintf(stdout,"argument %d is : %s\n",i,argv[i]);
-			i++;
-		}
-
-		/*check to see if command if build in*/
-		if(!buildIn(argv[0])){
-			/*build in function, handle them*/
-			
-			if(!strcmp(argv[0],"exit")){
-				
+		
+		/*check to see if command is exit */
+			if(!strcmp(argv[0],"exit")){		
 				/*exit program*/
 				write(1,"PROGRAM EXITING\n",17);
-
 				exit(EXIT_SUCCESS);
 			}
-			if(strcmp(argv[0],"pwd")==0){
-printf("abc\n");
-				/*create a child and invoke pwd function*/
-				if((pid = fork()) == 0){
-					/*child process*/
-printf("asdasd\n");
-				char ** environ ={NULL};
-					//char* newPath=NULL;
-					//findPath(argv[0],newPath);
-
-					if(execve("/bin/pwd",argv,environ) < 0)
-						printf("%s: command not found", argv[0]);
+			else{
+			/*find path of binary file*/
+				path = findPath(argv[0]);
+				
+				if(path != NULL){
+					/*create a child and invoke function if path is not null*/
+					if((pid = fork()) == 0){
+						/*child process*/
+						char *environ[]= {NULL};
+						#ifdef d
+							fprintf(stderr,"RUNNING : %s",cmd);
+						#endif
+						if(execve(path,argv,environ) < 0)
+							printf("%s: command not found", argv[0]);
+						#ifdef d
+							fprintf(stderr,"ENDED : %s (ret=%d)",cmd,
 						exit(0);
+					}else{
+						/*in parent, wait for child to finish*/
+						int status = 0;
+						
+						if(waitpid(-1,&status,0) >= 0){
+						/*child successfully reap*/
+							if(WIFEXITED(status)){
+							/*child terminate correctly*/
+								#ifdef d
+									fprintf(stderr,"ENDED : %s (ret:%d)",cmd,WEXITSTATUS(status));
+									return;
+							}else{
+							/*something wrong when child terminate*/
+								fprintf(stderr,"Child terminated abnormally");
+								return;
+							}
+						}else{
+							fprintf(stderr,"ERROR ON WAITPID");
+						}
+					}
 				}else{
-printf("abdddc\n");
-					waitpid(pid,NULL,0);
+					/*path not found*/
+					fprintf(stderr,"%s : command not found",argv[0]);
 					return;
-}
+				}
 			}
-		
-		}else{
-		/*not build in commnad*/
-			
-		}
+
+	
 			
 		
 }
 	
-int buildIn(char * cmd){
-	return 0;
-}
+
 int parse(char buf[],char *argv[]){
 
 
