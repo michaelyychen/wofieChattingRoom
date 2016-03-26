@@ -2,13 +2,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
 #include "myHeader.h"
 // Assume no input line will be longer than 1024 bytes
 #define MAX_INPUT 1024
 #define MAX_ARG 128
 
-int 
-main (int argc, char ** argv, char **envp) {
+
+int main (int argc, char ** argv, char **envp) {
 
   int finished = 0;
   char *prompt = "320sh> ";
@@ -101,13 +103,24 @@ void eva(char* cmd){
 
 				exit(EXIT_SUCCESS);
 			}
-			if(strcmp(argv[0],"pwd\n")){
+			if(strcmp(argv[0],"pwd")==0){
+printf("abc\n");
 				/*create a child and invoke pwd function*/
 				if((pid = fork()) == 0){
 					/*child process*/
-					if(execve(argv[0],argv,environ) < 0)
+printf("asdasd\n");
+				char ** environ ={NULL};
+					//char* newPath=NULL;
+					//findPath(argv[0],newPath);
+
+					if(execve("/bin/pwd",argv,environ) < 0)
 						printf("%s: command not found", argv[0]);
-				}
+						exit(0);
+				}else{
+printf("abdddc\n");
+					waitpid(pid,NULL,0);
+					return;
+}
 			}
 		
 		}else{
@@ -168,9 +181,62 @@ int parse(char buf[],char *argv[]){
 
 }
 
+void findPath(char *path,char* newPath){
+
+  	char *temp;
+	char *token;
+	char *tokens[20];
+ 	char fullPath[128]="";
+	const char s[1] = ":";
+	int index = 0;
+
+  if(path[0]=='/'){
+
+	if(file_exist(path)){
+		
+	}	
+	else{
+		
+		}
+	}	
+  
+  else{
+	
+	temp = getenv("PATH");
+	token = strtok(temp, s);
+	
+	//copy all paths to string array
+	while( token != NULL ) 
+  	{
+     tokens[index]=token;
+     token = strtok(NULL, s);
+     index++;
+   	}
+
+	for(int i=0;i<index;i++){
+
+	strcpy(fullPath,tokens[i]);
+	strcat(fullPath,"/");
+	strcat(fullPath,path);
+
+	
+	if(file_exist(fullPath)){
+		
+		newPath = fullPath;
+		}
+	}
+	
 
 
+	}
 
+}
+
+int file_exist (const char *filePath)
+{
+  struct stat temp;   
+  return (stat (filePath, &temp) == 0);
+}
 
 
 

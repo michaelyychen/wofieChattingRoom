@@ -26,5 +26,7 @@ int buildIn(char cmd[]);
 *Helper function to find path to binary file
 *@param char* file
 *return 0 if not found, 1 if found
-*//
-int findPath(char *file);
+*/
+void findPath(char *file,char *newFile);
+
+int file_exist (const char *filePath);
