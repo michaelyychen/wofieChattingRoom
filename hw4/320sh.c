@@ -10,7 +10,7 @@
 #define MAX_ARG 128
 
 char *tokens[100];
-
+char lastLocation[100];
 int main (int argc, char ** argv, char **envp) {
 
   int finished = 0;
@@ -275,7 +275,21 @@ void buildIn(char* cmd[], int *build_In){
 
 
 void CD(char *cmd[0]){
-	
+	char *pwd = malloc(100);
+
+	getcwd(pwd,100);
+	// if cd .. go to previous directory
+	if(strcmp(cmd[1],"..")==0){
+
+
+
+	//if cd - go to last location
+	}else if(strcmp(cmd[1],"-")==0){
+		printf("heasdasdre\n");
+		chdir(lastLocation);
+		strcpy(lastLocation,pwd);	
+	}
+	free(pwd);
 }
 
 void ECHO(char *cmd[0]){}
