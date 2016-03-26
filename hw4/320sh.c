@@ -91,7 +91,7 @@ void eva(char* cmd){
 		
 		int build_in = 0;
 		/*check to see if command is exit */
-		buildIn(argv[0],&build_in);
+		buildIn(argv,&build_in);
 
 			if(build_in == 0){		
 			
@@ -291,11 +291,23 @@ void ECHO(char *cmd[0]){}
 
 void SET(char *cmd[0]){
 	/*check if set arugments are valid*/
-	if(cmd[1] == NULL || cmd[2] != "=" || cmd[3] == NULL)
+	if(cmd[1] != NULL && !strcmp(cmd[2],"=") && cmd[3] == NULL)
 		fprintf(stderr,"Function set should be in format name = value");
 	else{
-		/*first remove env, concat new value with previous value ans set again*/
-		if(
+		fprintf(stderr,"name = %s, value = %s\n");
+		/*first check if value overlap, if yes concat new value with previous value ans set again*/
+		char *prev = getenv(cmd[1]);
+		if(prev != NULL){
+			/*value already existd*/
+			char newEnv[1024];
+			strcpy(newEnv,cmd[3]);
+			strcat(newEnv,prev);
+			fprintf(stderr,"new Path: %s",getenv(
+		}else{
+			/*value not exist, add new value into env*/
+			if(!setenv(cmd[1],cmd[3],0))
+				fprintf(stderr,"Error in set env");
+		}
 	}
 }
 

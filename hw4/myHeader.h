@@ -20,7 +20,7 @@ void eva(char cmd[]);
 *@param char* cmd
 *@Param int build_In  0 if not build in, build in otherwise
 **/
-void buildIn(char cmd[], int *build_In);
+void buildIn(char *cmd[], int *build_In);
 
 /**
 *Helper function to find path to binary file
