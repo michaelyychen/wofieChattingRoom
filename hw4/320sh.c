@@ -94,7 +94,7 @@ void eva(char* cmd){
 		if(!buildIn(argv[0])){
 			/*build in function, handle them*/
 			
-			if(!strcmp(argv[0],"exit\n")){
+			if(!strcmp(argv[0],"exit")){
 				
 				/*exit program*/
 				write(1,"PROGRAM EXITING\n",17);
@@ -127,6 +127,7 @@ int parse(char buf[],char *argv[]){
   
    const char s[1] = " ";
    char *token;
+   char *str;
    int index =0;
    /* get the first token */
    token = strtok(buf, s);
@@ -134,7 +135,7 @@ int parse(char buf[],char *argv[]){
    /* walk through other tokens */
    while( token != NULL ) 
    {
-    
+     
      argv[index]=token;
      
      token = strtok(NULL, s);
@@ -142,11 +143,18 @@ int parse(char buf[],char *argv[]){
      
      index++;
    }
-   
-	   
+   	
+
+    
 	//set last index = NUll	
 	argv[index] = NULL;
 	
+	//get ride of /n 
+	int temp = index -1;
+	str = argv[temp];	
+	str = strtok(str, "\n");
+
+
 	//background process condition
 	if(*argv[--index]=='&'){
 	argv[index] = NULL;
