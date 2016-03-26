@@ -250,6 +250,30 @@ void buildIn(char cmd[], int *build_In){
 		write(1,"PROGRAM EXITING\n",17);
 		*build_In = 1;
 		exit(EXIT_SUCCESS);
+	}else if(!strcmp(cmd,"cd")){		
+		/*call cd program*/		
+		*build_In = 1;
+		CD(cmd);
+	}else if(!strcmp(cmd,"ls")){		
+		/*call ls program*/	
+		*build_In = 1;
+		LS(cmd);
+	}else if(!strcmp(cmd,"set")){		
+		/*call set program*/
+		*build_In = 1;
+		SET(cmd);
+	}else if(!strcmp(cmd,"pwd")){		
+		/*call pwd program*/
+		*build_In = 1;
+		PWD(cmd);
+	}else if(!strcmp(cmd,"echo")){		
+		/*call echo program*/
+		*build_In = 1;
+		ECHO(cmd);
+	}else if(!strcmp(cmd,"help")){		
+		/*call help program*/
+		*build_In = 1;
+		HELP(cmd);
 	}
 }
 
