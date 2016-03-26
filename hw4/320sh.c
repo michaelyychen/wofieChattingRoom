@@ -17,9 +17,9 @@ int main (int argc, char ** argv, char **envp) {
   char cmd[MAX_INPUT];;
   int index = 0;
 
-  path = getenv("PATH");
+  strcmp(path,getenv("PATH"));
 
-
+	printf("%s\n",path);
   while (!finished) {
     char *cursor;
     char last_char;
@@ -103,7 +103,7 @@ void eva(char* cmd){
 					/*create a child and invoke function if path is not null*/
 					if((pid = fork()) == 0){
 						/*child process*/
-						
+						char *env[] = {NULL};
 						#ifdef d
 							fprintf(stderr,"RUNNING : %s",cmd);
 						#endif
@@ -256,32 +256,32 @@ int file_exist (const char *filePath)
 
 void buildIn(char cmd[], int build_In){
 
-	if(!strcmp(argv[0],"exit")){		
+	if(!strcmp(cmd,"exit")){		
 		/*exit program*/
 		write(1,"PROGRAM EXITING\n",17);
 		build_In = 1;
 		exit(EXIT_SUCCESS);
-	}else if(!strcmp(argv[0],"cd")){		
+	}else if(!strcmp(cmd,"cd")){		
 		/*call cd program*/		
 		build_In = 1;
 		CD(cmd);
-	}else if(!strcmp(argv[0],"ls")){		
+	}else if(!strcmp(cmd,"ls")){		
 		/*call ls program*/	
 		build_In = 1;
 		LS(cmd);
-	}else if(!strcmp(argv[0],"set")){		
+	}else if(!strcmp(cmd,"set")){		
 		/*call set program*/
 		build_In = 1;
 		SET(cmd);
-	}else if(!strcmp(argv[0],"pwd")){		
+	}else if(!strcmp(cmd,"pwd")){		
 		/*call pwd program*/
 		build_In = 1;
 		PWD(cmd);
-	}else if(!strcmp(argv[0],"echo")){		
+	}else if(!strcmp(cmd,"echo")){		
 		/*call echo program*/
 		build_In = 1;
 		ECHO(cmd);
-	}else if(!strcmp(argv[0],"help")){		
+	}else if(!strcmp(cmd,"help")){		
 		/*call help program*/
 		build_In = 1;
 		HELP(cmd);
