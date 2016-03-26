@@ -76,7 +76,7 @@ void eva(char* cmd){
 		char *argv[MAX_ARG]; /*Argument list*/
 		char buf[MAX_INPUT]; /*Copy of command line*/
 		int job;			 /*hold job type, background if 0, foreground otherwise*/
-		//pid_t pid;			 /*new process id*/
+		pid_t pid;			 /*new process id*/
 		
 		strcpy(buf, cmd);
 
@@ -101,7 +101,14 @@ void eva(char* cmd){
 
 				exit(EXIT_SUCCESS);
 			}
-			if(strcmp(argv[0],"pwd")){}
+			if(strcmp(argv[0],"pwd\n")){
+				/*create a child and invoke pwd function*/
+				if((pid = fork()) == 0){
+					/*child process*/
+					if(execve(argv[0],argv,environ) < 0)
+						printf("%s: command not found", argv[0]);
+				}
+			}
 		
 		}else{
 		/*not build in commnad*/
