@@ -79,12 +79,12 @@ void eva(char* cmd){
 		char buf[MAX_INPUT]; /*Copy of command line*/
 		int job;			 /*hold job type, background if 0, foreground otherwise*/
 		pid_t pid;			 /*new process id*/
+	
 		
 		strcpy(buf, cmd);
 
 		/*parse command line*/
 		job = parse(buf,argv);
-		int i = 0;
 
 		printf("job = %d\n",job);
 		
@@ -96,9 +96,11 @@ void eva(char* cmd){
 			}
 			else{
 			/*find path of binary file*/
-				path = findPath(argv[0]);
+				char newPath[1028] = "";
 				
-				if(path != NULL){
+				findPath(argv[0],newPath);
+				printf("path is : %s\n",newPath);
+				if(newPath != NULL){
 					/*create a child and invoke function if path is not null*/
 					if((pid = fork()) == 0){
 						/*child process*/
@@ -106,10 +108,8 @@ void eva(char* cmd){
 						#ifdef d
 							fprintf(stderr,"RUNNING : %s",cmd);
 						#endif
-						if(execve(path,argv,environ) < 0)
-							printf("%s: command not found", argv[0]);
-						#ifdef d
-							fprintf(stderr,"ENDED : %s (ret=%d)",cmd,
+						if(execve(newPath,argv,environ) < 0)
+							printf("%s: command not found\n", argv[0]);
 						exit(0);
 					}else{
 						/*in parent, wait for child to finish*/
@@ -121,6 +121,7 @@ void eva(char* cmd){
 							/*child terminate correctly*/
 								#ifdef d
 									fprintf(stderr,"ENDED : %s (ret:%d)",cmd,WEXITSTATUS(status));
+								#endif
 									return;
 							}else{
 							/*something wrong when child terminate*/
@@ -191,61 +192,66 @@ int parse(char buf[],char *argv[]){
 
 }
 
-void findPath(char *path,char* newPath){
+void findPath(char *path,char newPath[]){
 
   	char *temp;
 	char *token;
 	char *tokens[20];
- 	char fullPath[128]="";
+ 	char fullPath[1028]="";
 	const char s[1] = ":";
 	int index = 0;
-
-  if(path[0]=='/'){
+	int foundPath = 0;
+	
+	/*if path is absolute or relative, just check if file exist*/
+  if(path[0]=='/' || path[0] == '.'){
 
 	if(file_exist(path)){
-		
+		strcpy(newPath,path);
 	}	
 	else{
-		
+		newPath = NULL;
 		}
 	}	
-  
+	
+  /*else find the absolute path*/
   else{
 	
 	temp = getenv("PATH");
 	token = strtok(temp, s);
 	
 	//copy all paths to string array
-	while( token != NULL ) 
-  	{
-     tokens[index]=token;
-     token = strtok(NULL, s);
-     index++;
-   	}
+		while( token != NULL ) 
+	  	{
+		 tokens[index]=token;
+		 token = strtok(NULL, s);
+		 index++;
+	   	}
 
-	for(int i=0;i<index;i++){
+		for(int i=0;i<index;i++){
 
-	strcpy(fullPath,tokens[i]);
-	strcat(fullPath,"/");
-	strcat(fullPath,path);
+		strcpy(fullPath,tokens[i]);
+		strcat(fullPath,"/");
+		strcat(fullPath,path);
 
-	
-	if(file_exist(fullPath)){
+			if(file_exist(fullPath)){	
+				strcpy(newPath,fullPath);
+				foundPath = 1;
+				break;
+			}
 		
-		newPath = fullPath;
 		}
+		
+		if(foundPath == 0)
+			newPath = NULL;
 	}
+
 	
-
-
-	}
-
 }
 
 int file_exist (const char *filePath)
 {
   struct stat temp;   
-  return (stat (filePath, &temp) == 0);
+  return (stat(filePath, &temp) == 0);
 }
 
 
