@@ -8,7 +8,8 @@
 // Assume no input line will be longer than 1024 bytes
 #define MAX_INPUT 1024
 #define MAX_ARG 128
-char paths[2056];
+
+char *tokens[100];
 
 int main (int argc, char ** argv, char **envp) {
 
@@ -17,7 +18,7 @@ int main (int argc, char ** argv, char **envp) {
   char cmd[MAX_INPUT];;
   int index = 0;
 
-  strcmp(paths,getenv("PATH"));
+ splitPath(tokens);
 
   while (!finished) {
     char *cursor;
@@ -193,12 +194,9 @@ int parse(char buf[],char *argv[]){
 
 void findPath(char *path,char newPath[]){
 
-  	//char *temp;
-	char *token;
-	char *tokens[20];
+
  	char fullPath[1028]="";
-	const char s[1] = ":";
-	int index = 0;
+
 	int foundPath = 0;
 	
 	/*if path is absolute or relative, just check if file exist*/
@@ -207,27 +205,18 @@ void findPath(char *path,char newPath[]){
 	if(file_exist(path)){
 		strcpy(newPath,path);
 	}	
-	else{
+	else{ 
 		newPath = NULL;
 		}
 	}	
 	
   /*else find the absolute path*/
   else{
-	
-	
-	token = strtok(paths, s);
-	
-	//copy all paths to string array
-		while( token != NULL ) 
-	  	{
-		 tokens[index]=token;
-		 token = strtok(NULL, s);
-		 index++;
-	   	}
 
-		for(int i=0;i<index;i++){
-
+		int i=0;
+		while(tokens[i]!=NULL){
+		
+		
 		strcpy(fullPath,tokens[i]);
 		strcat(fullPath,"/");
 		strcat(fullPath,path);
@@ -237,7 +226,7 @@ void findPath(char *path,char newPath[]){
 				foundPath = 1;
 				break;
 			}
-		
+			i++;
 		}
 		
 		if(foundPath == 0)
@@ -261,30 +250,6 @@ void buildIn(char cmd[], int *build_In){
 		write(1,"PROGRAM EXITING\n",17);
 		*build_In = 1;
 		exit(EXIT_SUCCESS);
-	}else if(!strcmp(cmd,"cd")){		
-		/*call cd program*/		
-		*build_In = 1;
-		CD(cmd);
-	}else if(!strcmp(cmd,"ls")){		
-		/*call ls program*/	
-		*build_In = 1;
-		LS(cmd);
-	}else if(!strcmp(cmd,"set")){		
-		/*call set program*/
-		*build_In = 1;
-		SET(cmd);
-	}else if(!strcmp(cmd,"pwd")){		
-		/*call pwd program*/
-		*build_In = 1;
-		PWD(cmd);
-	}else if(!strcmp(cmd,"echo")){		
-		/*call echo program*/
-		*build_In = 1;
-		ECHO(cmd);
-	}else if(!strcmp(cmd,"help")){		
-		/*call help program*/
-		*build_In = 1;
-		HELP(cmd);
 	}
 }
 
@@ -312,6 +277,25 @@ void PWD(char *cmd){
 	free(pwd);
 }
 
+void splitPath(char *cmd[]){
+
+	char *token;
+	const char s[1] = ":";
+	int index = 0;
+	char *paths = getenv("PATH");
+
+	token = strtok(paths, s);
+	
+	//copy all paths to string array
+		while( token != NULL ) 
+	  	{
+		 tokens[index]=token;
+		 token = strtok(NULL, s);
+		 index++;
+	 }
+
+
+}
 
 void HELP(){
 	fprintf(stdout,"CSE320 SHELL:\n \

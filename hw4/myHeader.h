@@ -72,3 +72,8 @@ void PWD(char *cmd);
 **/
 void HELP();
 
+
+
+void splitPath(char *cmd[]);
+
+
