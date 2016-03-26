@@ -91,6 +91,8 @@ void eva(char* cmd){
 		
 		int build_in = 0;
 		/*check to see if command is exit */
+	
+		
 		buildIn(argv,&build_in);
 
 			if(build_in == 0){		
@@ -282,10 +284,30 @@ void ECHO(char *cmd[0]){}
 
 
 void SET(char *cmd[0]){
+fprintf(stderr,"inset\n");
+	int valid = 0;
 	/*check if set arugments are valid*/
-	if(cmd[1] != NULL && !strcmp(cmd[2],"=") && cmd[3] == NULL)
-		fprintf(stderr,"Function set should be in format name = value");
-	else{
+	int count = 0;
+	while(cmd[count]!=NULL){
+		fprintf(stderr,"%s\n",cmd[count]);
+		count++;
+		}
+	if(cmd[1] == NULL){
+		fprintf(stderr,"Function set should be in format name = value\n");
+		return;
+		}
+	valid++;
+	if(strcmp(cmd[2],"=")){
+		fprintf(stderr,"Function set should be in format name = value\n");
+		return;
+		}
+	valid++;
+	if(cmd[3] == NULL){
+		fprintf(stderr,"Function set should be in format name = value\n");
+		return;}
+	valid++;
+		
+	if(valid==3){
 		fprintf(stderr,"name = %s, value = %s\n",cmd[1],cmd[3]);
 		/*first check if value overlap, if yes concat new value with previous value ans set again*/
 		char *prev = getenv(cmd[1]);
@@ -294,11 +316,14 @@ void SET(char *cmd[0]){
 			char newEnv[1024];
 			strcpy(newEnv,cmd[3]);
 			strcat(newEnv,prev);
-			fprintf(stderr,"new Path: %s",getenv("PATH"));
+			if(setenv(cmd[1],newEnv,1))
+				fprintf(stderr,"Error in set env\n");
+			fprintf(stderr,"new Path: %s\n",getenv("PATH"));
 		}else{
 			/*value not exist, add new value into env*/
-			if(!setenv(cmd[1],cmd[3],0))
-				fprintf(stderr,"Error in set env");
+			if(setenv(cmd[1],cmd[3],0))
+				fprintf(stderr,"Error in set env\n");
+			fprintf(stderr,"new Path 2: %s\n",getenv(cmd[1]));
 		}
 	}
 }
