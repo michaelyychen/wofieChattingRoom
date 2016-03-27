@@ -444,8 +444,8 @@ void HELP(){
 
 void handleCursor(char cmd[],char* originalPos,char last_char){
 
-
-	
+	printf("%c\n",last_char);
+	printf("c\n",originalPos);
 	if((&cmd[-1]>originalPos)||(&cmd[-2]>originalPos)){
 
 
