@@ -19,6 +19,7 @@ int main (int argc, char ** argv, char **envp) {
   int index = 0;
 
  splitPath(tokens);
+ 
 
   while (!finished) {
     char *cursor;
@@ -75,7 +76,7 @@ int main (int argc, char ** argv, char **envp) {
 }
 
 void eva(char* cmd){
-	
+
 		char *argv[MAX_ARG]; /*Argument list*/
 		char buf[MAX_INPUT]; /*Copy of command line*/
 		int job;			 /*hold job type, background if 0, foreground otherwise*/
@@ -284,23 +285,21 @@ void ECHO(char *cmd[0]){}
 
 
 void SET(char *cmd[0]){
-fprintf(stderr,"inset\n");
+fprintf(stderr,"new Path: %s\n",getenv("PATH"));
 	int valid = 0;
 	/*check if set arugments are valid*/
-	int count = 0;
-	while(cmd[count]!=NULL){
-		fprintf(stderr,"%s\n",cmd[count]);
-		count++;
-		}
+
 	if(cmd[1] == NULL){
 		fprintf(stderr,"Function set should be in format name = value\n");
 		return;
 		}
 	valid++;
+	if(cmd[2] != NULL){
 	if(strcmp(cmd[2],"=")){
 		fprintf(stderr,"Function set should be in format name = value\n");
 		return;
 		}
+	}
 	valid++;
 	if(cmd[3] == NULL){
 		fprintf(stderr,"Function set should be in format name = value\n");
@@ -318,12 +317,12 @@ fprintf(stderr,"inset\n");
 			strcat(newEnv,prev);
 			if(setenv(cmd[1],newEnv,1))
 				fprintf(stderr,"Error in set env\n");
-			fprintf(stderr,"new Path: %s\n",getenv("PATH"));
+			//fprintf(stderr,"new Path: %s\n",getenv("PATH"));
 		}else{
 			/*value not exist, add new value into env*/
 			if(setenv(cmd[1],cmd[3],0))
 				fprintf(stderr,"Error in set env\n");
-			fprintf(stderr,"new Path 2: %s\n",getenv(cmd[1]));
+			//fprintf(stderr,"new Path 2: %s\n",getenv(cmd[1]));
 		}
 	}
 }
@@ -337,13 +336,13 @@ void PWD(){
 }
 
 void splitPath(char *cmd[]){
-
+	char path2[2014];
 	char *token;
 	const char s[1] = ":";
 	int index = 0;
 	char *paths = getenv("PATH");
-
-	token = strtok(paths, s);
+	strcpy(path2,paths);
+	token = strtok(path2, s);
 	
 	//copy all paths to string array
 		while( token != NULL ) 
