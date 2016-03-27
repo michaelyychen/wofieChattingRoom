@@ -96,13 +96,22 @@ void eva(char* cmd){
 
 		/*parse command line*/
 		job = parse(buf,argv);
+		 write(1,"s",1);
+		int i = 0;
+		while(argv[i]!=NULL){
+			printf("argv%d is :%s  ",i,argv[i]);
+			i++;
+		}
 
 		printf("job = %d\n",job);
+		  
+		/*check if command if empty*/
+		if(argv[0] == NULL){
+			return;
+		}
 		
 		int build_in = 0;
-		/*check to see if command is exit */
-	
-		
+		/*check to see if command is buildin */
 		buildIn(argv,&build_in);
 
 			if(build_in == 0){		
@@ -111,7 +120,7 @@ void eva(char* cmd){
 				char newPath[1028] = "";
 				
 				findPath(argv[0],newPath);
-				printf("path is : %s\n",newPath);
+				//printf("path is : %s\n",newPath);
 				if(newPath != NULL){
 					/*create a child and invoke function if path is not null*/
 					if((pid = fork()) == 0){
@@ -120,10 +129,10 @@ void eva(char* cmd){
 						#ifdef d
 							fprintf(stderr,"RUNNING : %s",cmd);
 						#endif
-						write(1,"HER\n",4);
+
 						if(execve(newPath,argv,NULL) < 0)
 							printf("%s: command not found\n", argv[0]);
-						write(1,"HERE\n",5);
+						
 						exit(0);
 					}else{
 						/*in parent, wait for child to finish*/
@@ -139,11 +148,11 @@ void eva(char* cmd){
 									return;
 							}else{
 							/*something wrong when child terminate*/
-								fprintf(stderr,"Child terminated abnormally");
+								fprintf(stderr,"Child terminated abnormally with error:%s\n",strerror(errno));
 								return;
 							}
 						}else{
-							fprintf(stderr,"ERROR ON WAITPID");
+							fprintf(stderr,"ERROR ON WAITPID with error:%s\n",strerror(errno));
 						}
 					}
 				}else{
@@ -168,39 +177,33 @@ int parse(char buf[],char *argv[]){
    char *str;
    int index =0;
    /* get the first token */
+  
    token = strtok(buf, s);
-   
+     
    /* walk through other tokens */
    while( token != NULL ) 
-   {
-     
+   {    
      argv[index]=token;
-     
-     token = strtok(NULL, s);
-
-     
+     token = strtok(NULL, s);		   
      index++;
    }
-   	
 
-    
 	//set last index = NUll	
 	argv[index] = NULL;
 	
 	//get ride of /n 
-	int temp = index -1;
-	str = argv[temp];	
+	str = argv[index-1];
 	str = strtok(str, "\n");
-	if(!strcmp(str,"\n"))
-		argv[temp] = NULL;
 
-
+	argv[index-1] = str;
+  
 	//background process condition
-	if(*argv[--index]=='&'){
-	argv[index] = NULL;
-	return 0;
+	if(argv[index-1] != NULL){
+		if(*argv[--index]=='&'){
+		argv[index] = NULL;
+		return 0;
+		}
 	}
-	
 	//foreground process
 	return 1;
 
@@ -384,12 +387,12 @@ void SET(char *cmd[0]){
 			strcpy(newEnv,cmd[3]);
 			strcat(newEnv,prev);
 			if(setenv(cmd[1],newEnv,1))
-				fprintf(stderr,"Error in set env\n");
+				fprintf(stderr,"Error in set env with error:%s\n",strerror(errno));
 			//fprintf(stderr,"new Path: %s\n",getenv("PATH"));
 		}else{
 			/*value not exist, add new value into env*/
 			if(setenv(cmd[1],cmd[3],0))
-				fprintf(stderr,"Error in set env\n");
+				fprintf(stderr,"Error in set env with error:%s\n",strerror(errno));
 			//fprintf(stderr,"new Path 2: %s\n",getenv(cmd[1]));
 		}
 	}
