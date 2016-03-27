@@ -279,11 +279,12 @@ void buildIn(char* cmd[], int *build_In){
 
 void CD(char *cmd[0]){
 	char *pwd = malloc(100);
+	char temp[100];
 
 	getcwd(pwd,100);
 	// if cd .. go to previous directory
 	if(strcmp(cmd[1],"..")==0){
-
+		
 
 
 	//if cd - go to last location
@@ -291,6 +292,23 @@ void CD(char *cmd[0]){
 		printf("heasdasdre\n");
 		chdir(lastLocation);
 		strcpy(lastLocation,pwd);	
+	
+
+
+	}else if(strcmp(cmd[1],".")==0){
+	
+
+
+
+
+
+	}else{
+
+
+
+
+
+
 	}
 	free(pwd);
 }
