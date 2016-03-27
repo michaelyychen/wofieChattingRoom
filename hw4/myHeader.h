@@ -43,11 +43,6 @@ int file_exist (const char *filePath);
 **/
 void CD(char *cmd[0]);
 
-/**
-*Helper to build in function ls
-*@param char *cmd: command line
-**/
-void LS(char *cmd[0]);
 
 /**
 *Helper to build in function echo
@@ -76,4 +71,4 @@ void HELP();
 
 void splitPath(char *cmd[]);
 
-void handleCursor(char cmd[],char*originalPos,char last_char);
+void handleCursor(char cmd[],char* cursor);

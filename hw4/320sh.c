@@ -54,16 +54,12 @@ int main (int argc, char ** argv, char **envp) {
   	  
       last_char = *cursor;
       
-      if(last_char == 0x5b){
+      if(last_char == 0x1b){
       	cursor++;
       	read(0,cursor,1);
       	if(*cursor == 0x41)
       		write(1,"up\n",3);
-      }
-      	
-
-
-	  	
+      }	  	
       else if(last_char == 3) {
         write(1, "^c", 2);
      
@@ -361,7 +357,20 @@ void CD(char *cmd[0]){
 	free(pwd);
 }
 
-void ECHO(char *cmd[0]){}
+void ECHO(char *cmd[]){
+	char c;
+	/*if no argument given, just return*/
+	if(cmd[1] == NULL){
+		write(1,"\n",1);	
+		return;
+	}else if((c = *cmd[1]) == '$'){
+	
+		char *temp = (cmd[1]);
+		printf("aug is : %s\n",++temp);
+	}
+
+	
+}
 
 
 void SET(char *cmd[0]){
