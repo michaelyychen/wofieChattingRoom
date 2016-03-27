@@ -14,7 +14,7 @@ char lastLocation[100];
 int main (int argc, char ** argv, char **envp) {
 
   int finished = 0;
-  char *prompt = "320sh> ";
+  char *prompt = "  320sh> ";
   char cmd[MAX_INPUT];;
   int index = 0;
 
@@ -29,6 +29,11 @@ int main (int argc, char ** argv, char **envp) {
 
 
     // Print the prompt
+    char *pwd = malloc(100);
+	getcwd(pwd,100);
+	write(1,pwd,strlen(pwd));
+	free(pwd);
+    
     rv = write(1, prompt, strlen(prompt));;
     if (!rv) { 
       finished = 1;
