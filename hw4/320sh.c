@@ -33,7 +33,9 @@ int main (int argc, char ** argv, char **envp) {
     // Print the prompt
     char *pwd = malloc(100);
 	getcwd(pwd,100);
+	write(1,"[",1);
 	write(1,pwd,strlen(pwd));
+	write(1,"]",1);
 	free(pwd);
     
     rv = write(1, prompt, strlen(prompt));;
@@ -59,6 +61,7 @@ int main (int argc, char ** argv, char **envp) {
 
       if(last_char == 3) {
         write(1, "^c", 2);
+     
       } else {
       	write(1, &last_char, 1);
 		cmd[index]=last_char;
@@ -75,7 +78,7 @@ int main (int argc, char ** argv, char **envp) {
       break;
     }
 
-
+	
     // Execute the command, handling built-in commands separately 
     // Just echo the command line for now
     // write(1, cmd, strnlen(cmd, MAX_INPUT));
@@ -97,13 +100,22 @@ void eva(char* cmd){
 
 		/*parse command line*/
 		job = parse(buf,argv);
+		 write(1,"s",1);
+		int i = 0;
+		while(argv[i]!=NULL){
+			printf("argv%d is :%s  ",i,argv[i]);
+			i++;
+		}
 
 		printf("job = %d\n",job);
+		  
+		/*check if command if empty*/
+		if(argv[0] == NULL){
+			return;
+		}
 		
 		int build_in = 0;
-		/*check to see if command is exit */
-	
-		
+		/*check to see if command is buildin */
 		buildIn(argv,&build_in);
 
 			if(build_in == 0){		
@@ -112,17 +124,19 @@ void eva(char* cmd){
 				char newPath[1028] = "";
 				
 				findPath(argv[0],newPath);
-				printf("path is : %s\n",newPath);
+				//printf("path is : %s\n",newPath);
 				if(newPath != NULL){
 					/*create a child and invoke function if path is not null*/
 					if((pid = fork()) == 0){
 						/*child process*/
-						char *env[] = {NULL};
+					//	char *env[] = {NULL};
 						#ifdef d
 							fprintf(stderr,"RUNNING : %s",cmd);
 						#endif
-						if(execve(newPath,argv,env) < 0)
+
+						if(execve(newPath,argv,NULL) < 0)
 							printf("%s: command not found\n", argv[0]);
+						
 						exit(0);
 					}else{
 						/*in parent, wait for child to finish*/
@@ -138,11 +152,11 @@ void eva(char* cmd){
 									return;
 							}else{
 							/*something wrong when child terminate*/
-								fprintf(stderr,"Child terminated abnormally");
+								fprintf(stderr,"Child terminated abnormally with error:%s\n",strerror(errno));
 								return;
 							}
 						}else{
-							fprintf(stderr,"ERROR ON WAITPID");
+							fprintf(stderr,"ERROR ON WAITPID with error:%s\n",strerror(errno));
 						}
 					}
 				}else{
@@ -167,39 +181,33 @@ int parse(char buf[],char *argv[]){
    char *str;
    int index =0;
    /* get the first token */
+  
    token = strtok(buf, s);
-   
+     
    /* walk through other tokens */
    while( token != NULL ) 
-   {
-     
+   {    
      argv[index]=token;
-     
-     token = strtok(NULL, s);
-
-     
+     token = strtok(NULL, s);		   
      index++;
    }
-   	
 
-    
 	//set last index = NUll	
 	argv[index] = NULL;
 	
 	//get ride of /n 
-	int temp = index -1;
-	str = argv[temp];	
+	str = argv[index-1];
 	str = strtok(str, "\n");
-	if(!strcmp(str,"\n"))
-		argv[temp] = NULL;
 
-
+	argv[index-1] = str;
+  
 	//background process condition
-	if(*argv[--index]=='&'){
-	argv[index] = NULL;
-	return 0;
+	if(argv[index-1] != NULL){
+		if(*argv[--index]=='&'){
+		argv[index] = NULL;
+		return 0;
+		}
 	}
-	
 	//foreground process
 	return 1;
 
@@ -352,7 +360,7 @@ void ECHO(char *cmd[0]){}
 
 
 void SET(char *cmd[0]){
-fprintf(stderr,"new Path: %s\n",getenv("PATH"));
+
 	int valid = 0;
 	/*check if set arugments are valid*/
 
@@ -383,12 +391,12 @@ fprintf(stderr,"new Path: %s\n",getenv("PATH"));
 			strcpy(newEnv,cmd[3]);
 			strcat(newEnv,prev);
 			if(setenv(cmd[1],newEnv,1))
-				fprintf(stderr,"Error in set env\n");
+				fprintf(stderr,"Error in set env with error:%s\n",strerror(errno));
 			//fprintf(stderr,"new Path: %s\n",getenv("PATH"));
 		}else{
 			/*value not exist, add new value into env*/
 			if(setenv(cmd[1],cmd[3],0))
-				fprintf(stderr,"Error in set env\n");
+				fprintf(stderr,"Error in set env with error:%s\n",strerror(errno));
 			//fprintf(stderr,"new Path 2: %s\n",getenv(cmd[1]));
 		}
 	}
