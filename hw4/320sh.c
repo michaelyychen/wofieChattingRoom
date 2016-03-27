@@ -31,7 +31,9 @@ int main (int argc, char ** argv, char **envp) {
     // Print the prompt
     char *pwd = malloc(100);
 	getcwd(pwd,100);
+	write(1,"[",1);
 	write(1,pwd,strlen(pwd));
+	write(1,"]",1);
 	free(pwd);
     
     rv = write(1, prompt, strlen(prompt));;
@@ -54,6 +56,7 @@ int main (int argc, char ** argv, char **envp) {
       
       if(last_char == 3) {
         write(1, "^c", 2);
+     
       } else {
       	write(1, &last_char, 1);
 		cmd[index]=last_char;
@@ -70,7 +73,7 @@ int main (int argc, char ** argv, char **envp) {
       break;
     }
 
-
+	
     // Execute the command, handling built-in commands separately 
     // Just echo the command line for now
     // write(1, cmd, strnlen(cmd, MAX_INPUT));
