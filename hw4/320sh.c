@@ -116,12 +116,14 @@ void eva(char* cmd){
 					/*create a child and invoke function if path is not null*/
 					if((pid = fork()) == 0){
 						/*child process*/
-						char *env[] = {NULL};
+					//	char *env[] = {NULL};
 						#ifdef d
 							fprintf(stderr,"RUNNING : %s",cmd);
 						#endif
-						if(execve(newPath,argv,env) < 0)
+						write(1,"HER\n",4);
+						if(execve(newPath,argv,NULL) < 0)
 							printf("%s: command not found\n", argv[0]);
+						write(1,"HERE\n",5);
 						exit(0);
 					}else{
 						/*in parent, wait for child to finish*/
@@ -339,7 +341,7 @@ void ECHO(char *cmd[0]){}
 
 
 void SET(char *cmd[0]){
-fprintf(stderr,"new Path: %s\n",getenv("PATH"));
+
 	int valid = 0;
 	/*check if set arugments are valid*/
 
