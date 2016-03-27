@@ -76,4 +76,4 @@ void HELP();
 
 void splitPath(char *cmd[]);
 
-
+void handleCursor(char cmd[],char*originalPos,char last_char);

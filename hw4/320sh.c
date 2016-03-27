@@ -24,6 +24,7 @@ int main (int argc, char ** argv, char **envp) {
 
   while (!finished) {
     char *cursor;
+    char *originalPos;
     char last_char;
     int rv;
     int count;
@@ -48,11 +49,14 @@ int main (int argc, char ** argv, char **envp) {
 	  && (++count < (MAX_INPUT-1))
 	  && (last_char != '\n');
 	cursor++) { 
-
+      originalPos=cursor;
       rv = read(0, cursor, 1);
   	  
       last_char = *cursor;
       
+      handleCursor(cmd,originalPos,last_char);
+
+
       if(last_char == 3) {
         write(1, "^c", 2);
       } else {
@@ -428,6 +432,26 @@ void HELP(){
 	pwd					show current directory							\n \
 	echo					print string and expand environment variables	\n \
 	help					print help meun									\n");
+}
+
+void handleCursor(char cmd[],char* originalPos,char last_char){
+
+
+	
+	if((&cmd[-1]>originalPos)||(&cmd[-2]>originalPos)){
+
+
+	}else{
+		if(cmd[0]=='A'&&cmd[-1]=='['&&(int)cmd[-2]==27){
+			printf("UP\n" );
+		}
+
+
+
+	}
+
+
+
 }
 
 
