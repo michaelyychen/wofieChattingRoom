@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <errno.h>
 #include "myHeader.h"
 // Assume no input line will be longer than 1024 bytes
 #define MAX_INPUT 1024
@@ -285,32 +286,45 @@ void buildIn(char* cmd[], int *build_In){
 void CD(char *cmd[0]){
 	char *pwd = malloc(100);
 	char temp[100];
+	char *ret;
 
 	getcwd(pwd,100);
+ 
 	// if cd .. go to previous directory
 	if(strcmp(cmd[1],"..")==0){
-		
+		strcpy(lastLocation,pwd);	
 
+		strcpy(temp,pwd);
+
+		ret= strrchr(temp, '/');
+
+		*ret = '\0'; 
+		if(chdir(temp)<0){
+			printf("error: %s\n", strerror(errno));
+		}
 
 	//if cd - go to last location
 	}else if(strcmp(cmd[1],"-")==0){
-		printf("heasdasdre\n");
-		chdir(lastLocation);
+	
+		if(chdir(lastLocation)<0){
+			printf("error: %s\n", strerror(errno));
+		}
 		strcpy(lastLocation,pwd);	
 	
-
 
 	}else if(strcmp(cmd[1],".")==0){
 	
 
 
-
-
-
 	}else{
 
+		strcpy(lastLocation,pwd);	
 
-
+		strcat(pwd,"/");
+		strcat(pwd,cmd[1]);
+		if(chdir(pwd)<0){
+			printf("error: %s\n", strerror(errno));
+		}
 
 
 
@@ -375,17 +389,19 @@ void PWD(){
 void splitPath(char *cmd[]){
 	char path2[2014];
 	char *token;
-	const char s[1] = ":";
+
 	int index = 0;
 	char *paths = getenv("PATH");
-	strcpy(path2,paths);
-	token = strtok(path2, s);
+	strcat(path2,paths);
+
+	token = strtok(path2, ":");
 	
 	//copy all paths to string array
 		while( token != NULL ) 
 	  	{
+	    
 		 tokens[index]=token;
-		 token = strtok(NULL, s);
+		 token = strtok(NULL, ":");
 		 index++;
 	 }
 
@@ -400,7 +416,7 @@ void HELP(){
 	pwd					show current directory							\n \
 	echo					print string and expand environment variables	\n \
 	help					print help meun									\n");
-	}
+}
 
 
 
