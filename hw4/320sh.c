@@ -186,6 +186,8 @@ int parse(char buf[],char *argv[]){
 	int temp = index -1;
 	str = argv[temp];	
 	str = strtok(str, "\n");
+	if(!strcmp(str,"\n"))
+		argv[temp] = NULL;
 
 
 	//background process condition
