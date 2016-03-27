@@ -291,7 +291,17 @@ void CD(char *cmd[0]){
 	getcwd(pwd,100);
  
 	// if cd .. go to previous directory
-	if(strcmp(cmd[1],"..")==0){
+	if(cmd[1]==NULL){
+
+	strcpy(lastLocation,pwd);
+	strcpy( temp,getenv("HOME"));
+		if(chdir(temp)<0){
+			printf("error: %s\n", strerror(errno));
+		}
+
+
+
+	}else if(strcmp(cmd[1],"..")==0){
 		strcpy(lastLocation,pwd);	
 
 		strcpy(temp,pwd);
