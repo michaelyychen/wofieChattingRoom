@@ -17,7 +17,8 @@ int main (int argc, char ** argv, char **envp) {
 
   int finished = 0;
   char *prompt = "  320sh> ";
-  char cmd[MAX_INPUT];;
+  char cmd[MAX_INPUT];
+  
   int index = 0;
 
  splitPath(tokens);
@@ -28,6 +29,9 @@ int main (int argc, char ** argv, char **envp) {
     char last_char;
     int rv;
     int count;
+
+    int counter = 0;
+    int position = 0;
 
     // Print the prompt
     char *pwd = malloc(100);
@@ -57,10 +61,66 @@ int main (int argc, char ** argv, char **envp) {
       
       if(last_char == 0x1b){
       	cursor++;
+      	cmd[index]=0x1b;
+      	index ++;
       	read(0,cursor,1);
-      	if(*cursor == 0x41)
+
+      	if(*cursor == 0x5b){
+      		cmd[index]=0x5b;
+      		index ++;
+      		cursor++;
+      		read(0,cursor,1);
+			if(*cursor == 0x41){
+			cmd[index]=0x41;
+      		index ++;	
       		write(1,"up\n",3);
-      }	  	
+
+      		}
+      		else if(*cursor == 0x42){
+      		cmd[index]=0x42;
+      		index ++;	
+      		write(1,"down\n",3);	
+      		}
+      		else if(*cursor == 0x43){
+      		cmd[index]=0x43;
+      		index ++;	
+      		char c = 0x1B;
+      		char b = 0x5B;
+
+      		if(position!=counter){
+	      		write(1,&c,1);	
+	      		write(1,&b,1);
+	      		write(1,"C",1);
+	      		position ++;
+	      	}
+
+      		}
+      		else{
+      		cmd[index]=0x44;
+      		index ++;	
+      		char c = 0x1B;
+      		char b = 0x5B;
+
+	      		if(position!=0){
+	      		write(1,&c,1);	
+	      		write(1,&b,1);
+	      		write(1,"D",1);
+	      		position --;
+	      		}
+      
+      		}
+
+      	}
+
+      }else if(last_char == 127){
+      	//char c = 127;
+      	//char b = 8;
+       	write(1,&last_char,1);	
+      	//write(1,&c,1);
+      }   		  	
+
+      	
+
       else if(last_char == 3) {
         write(1, "^c", 2);
      
@@ -68,6 +128,8 @@ int main (int argc, char ** argv, char **envp) {
       	write(1, &last_char, 1);
 		cmd[index]=last_char;
 		index ++;
+		position++;
+		counter ++;
       }
 
     } 
@@ -89,7 +151,6 @@ int main (int argc, char ** argv, char **envp) {
 
   return 0;
 }
-
 void eva(char* cmd){
 
 		char *argv[MAX_ARG]; /*Argument list*/
