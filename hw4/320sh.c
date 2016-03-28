@@ -182,10 +182,10 @@ void eva(char* cmd){
 				/*find path of binary file*/
 				char newPath[1028] = "";			
 				findPath(argv[0],newPath);
-			
+				printf("path is %i\n",(int)*newPath );
 					
-					if(newPath != NULL){
-						printf("newpath is :%s\n",newPath);
+					if(strcmp(newPath,"\0")){
+						
 						#ifdef d
 							fprintf(stderr,"RUNNING : %s\n",cmd);
 						#endif
@@ -303,6 +303,7 @@ void findPath(char *path,char newPath[]){
 			if(file_exist(fullPath)){	
 				strcpy(newPath,fullPath);
 				foundPath = 1;
+				printf("asfsdfasdf");
 				break;
 			}
 			i++;
@@ -537,8 +538,29 @@ void HELP(){
 	help					print help meun									\n");
 }
 
-void handleCursor(char cmd[],char* cursor){
+void history(int mode,char * list){
 
+   FILE *fp;
+
+   char* path = getenv("HOME");
+   strcat(path,"/history.txt");
+   fp = fopen(path, "w+");
+
+   //writing to file
+   if (mode == 1){
+   		strcat(list,"\n");
+   	 	fputs(list, fp);
+
+   }else{
+
+   		fgets(list, 255, (FILE*)fp);
+   		
+
+   }
+
+
+
+   fclose(fp);
 }
 
 

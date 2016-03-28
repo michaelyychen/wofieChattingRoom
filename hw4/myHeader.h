@@ -70,3 +70,6 @@ void HELP();
 
 
 void splitPath(char *cmd[]);
+
+
+void history(int mode,char * list);
