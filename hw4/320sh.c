@@ -173,38 +173,42 @@ void eva(char* cmd){
 		}
 		
 		int build_in = 0;
-		/*check to see if command is buildin */
+		/*check to see if command is buildin, handle them if yes */
 		buildIn(argv,&build_in);
 
-			if(build_in == 0){		
-			
-			/*find path of binary file*/
-				char newPath[1028] = "";
-				
+			if(build_in == 0){	
+				/*not build, fork a child process*/
+				if((pid = fork()) == 0){
+				/*find path of binary file*/
+				char newPath[1028] = "";			
 				findPath(argv[0],newPath);
-				//printf("path is : %s\n",newPath);
-				if(newPath != NULL){
-					/*create a child and invoke function if path is not null*/
-					if((pid = fork()) == 0){
-						/*child process*/
-					//	char *env[] = {NULL};
+			
+					
+					if(newPath != NULL){
+						printf("newpath is :%s\n",newPath);
 						#ifdef d
-							fprintf(stderr,"RUNNING : %s",cmd);
+							fprintf(stderr,"RUNNING : %s\n",cmd);
 						#endif
 
-						if(execve(newPath,argv,NULL) < 0)
-							printf("%s: command not found\n", argv[0]);
+						if(execve(newPath,argv,NULL) < 0){
+							printf("Error on executing program %s with error : %s\n",newPath,strerror(errno));
+							exit(1);
+						}
 						
 						exit(0);
 					}else{
-						/*in parent, wait for child to finish*/
-						
+					/*path not found*/
+					fprintf(stderr,"%s : command not found\n",argv[0]);
+					exit(127);
+					}
+				}else{
+						/*in parent, wait for child to finish*/				
 						if(waitpid(-1,&status,0) >= 0){
 						/*child successfully reap*/
 							if(WIFEXITED(status)){
 							/*child terminate correctly*/
 								#ifdef d
-									fprintf(stderr,"ENDED : %s (ret:%d)",cmd,WEXITSTATUS(status));
+									fprintf(stderr,"ENDED : %s (ret:%d)\n",cmd,WEXITSTATUS(status));
 								#endif
 									return;
 							}else{
@@ -216,11 +220,6 @@ void eva(char* cmd){
 							fprintf(stderr,"ERROR ON WAITPID with error:%s\n",strerror(errno));
 						}
 					}
-				}else{
-					/*path not found*/
-					fprintf(stderr,"%s : command not found",argv[0]);
-					return;
-				}
 			}
 
 	
@@ -422,21 +421,32 @@ char c;
 	while(cmd[i]!=NULL){
 		/*check if argument starts with $, if not, just print the argument*/
 		if((c = *cmd[i]) == '$'){
+			
 			/*search for environ variable, print its value if found, or print arugment otherwise*/
 			name = cmd[i];
 	
 			if(strlen(++name) != 0){
-	
-				value = getenv(name);
-				if(value != NULL)
-					write(1,value,strlen(value));
+				if((c = *name) == '?'){				
+					fprintf(stderr,"%d",status);
+					if(strlen(++name) != 0){
+						write(1,name,strlen(name));
+					}
+				}else{
+					value = getenv(name);
+					if(value != NULL)
+						write(1,value,strlen(value));
 		
-				}else
-					write(1,"$",1);
-		}else
+					}
+			}else{
+				write(1,"$",1);
+				write(1," ",1);
+				}
+		}else{
 			write(1,cmd[i],strlen(cmd[i]));	
+			write(1," ",1);
+		}
 		i++;
-		write(1,"\n",1);
+		
 	}
 
 	write(1,"\n",1);
