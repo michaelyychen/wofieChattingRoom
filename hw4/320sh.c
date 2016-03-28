@@ -12,6 +12,7 @@
 
 char *tokens[100];
 char lastLocation[100];
+int status = 0;
 int main (int argc, char ** argv, char **envp) {
 
   int finished = 0;
@@ -102,11 +103,6 @@ void eva(char* cmd){
 		/*parse command line*/
 		job = parse(buf,argv);
 		 write(1,"s",1);
-		int i = 0;
-		while(argv[i]!=NULL){
-			printf("argv%d is :%s  ",i,argv[i]);
-			i++;
-		}
 
 		printf("job = %d\n",job);
 		  
@@ -141,7 +137,6 @@ void eva(char* cmd){
 						exit(0);
 					}else{
 						/*in parent, wait for child to finish*/
-						int status = 0;
 						
 						if(waitpid(-1,&status,0) >= 0){
 						/*child successfully reap*/
@@ -358,18 +353,33 @@ void CD(char *cmd[0]){
 }
 
 void ECHO(char *cmd[]){
-	char c;
-	/*if no argument given, just return*/
-	if(cmd[1] == NULL){
-		write(1,"\n",1);	
-		return;
-	}else if((c = *cmd[1]) == '$'){
+char c;
+	int i = 1;
+	char *value;
+	char *name;
+	/*if argument is NULL, just return*/
+	while(cmd[i]!=NULL){
+		/*check if argument starts with $, if not, just print the argument*/
+		if((c = *cmd[i]) == '$'){
+			/*search for environ variable, print its value if found, or print arugment otherwise*/
+			name = cmd[i];
 	
-		char *temp = (cmd[1]);
-		printf("aug is : %s\n",++temp);
+			if(strlen(++name) != 0){
+	
+				value = getenv(name);
+				if(value != NULL)
+					write(1,value,strlen(value));
+		
+				}else
+					write(1,"$",1);
+		}else
+			write(1,cmd[i],strlen(cmd[i]));	
+		i++;
+		write(1,"\n",1);
 	}
 
-	
+	write(1,"\n",1);
+
 }
 
 
