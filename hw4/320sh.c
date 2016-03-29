@@ -21,7 +21,7 @@ int main (int argc, char ** argv, char **envp) {
   
   int index = 0;
 
- splitPath(tokens);
+  splitPath(tokens);
  
   while (!finished) {
     char *cursor;
@@ -29,17 +29,15 @@ int main (int argc, char ** argv, char **envp) {
     char last_char;
     int rv;
     int count;
-
-    int counter = 0;
     int position = 0;
 
     // Print the prompt
     char *pwd = malloc(100);
-	getcwd(pwd,100);
-	write(1,"[",1);
-	write(1,pwd,strlen(pwd));
-	write(1,"]",1);
-	free(pwd);
+  	getcwd(pwd,100);
+  	write(1,"[",1);
+  	write(1,pwd,strlen(pwd));
+  	write(1,"]",1);
+  	free(pwd);
     
     rv = write(1, prompt, strlen(prompt));;
     if (!rv) { 
@@ -55,39 +53,37 @@ int main (int argc, char ** argv, char **envp) {
 	  && (last_char != '\n');
 	cursor++) { 
      // originalPos=cursor;
+
       rv = read(0, cursor, 1);
   	  
       last_char = *cursor;
       
       if(last_char == 0x1b){
       	cursor++;
-      	cmd[index]=0x1b;
-      	index ++;
+      //	cmd[index]=0x1b;
+      //	index ++;
       	read(0,cursor,1);
 
       	if(*cursor == 0x5b){
-      		cmd[index]=0x5b;
-      		index ++;
+      	//	cmd[index]=0x5b;
+      	//	index ++;
       		cursor++;
       		read(0,cursor,1);
-			if(*cursor == 0x41){
-			cmd[index]=0x41;
-      		index ++;	
+		    	if(*cursor == 0x41){
+	
       		write(1,"up\n",3);
 
       		}
       		else if(*cursor == 0x42){
-      		cmd[index]=0x42;
-      		index ++;	
+
       		write(1,"down\n",3);	
       		}
       		else if(*cursor == 0x43){
-      		cmd[index]=0x43;
-      		index ++;	
+
       		char c = 0x1B;
       		char b = 0x5B;
 
-      		if(position!=counter){
+      		if(position!=index){
 	      		write(1,&c,1);	
 	      		write(1,&b,1);
 	      		write(1,"C",1);
@@ -96,14 +92,14 @@ int main (int argc, char ** argv, char **envp) {
 
       		}
       		else{
-      		cmd[index]=0x44;
-      		index ++;	
+
       		char c = 0x1B;
       		char b = 0x5B;
 
 	      		if(position!=0){
 	      		write(1,&c,1);	
 	      		write(1,&b,1);
+
 	      		write(1,"D",1);
 	      		position --;
 	      		}
@@ -113,10 +109,49 @@ int main (int argc, char ** argv, char **envp) {
       	}
 
       }else if(last_char == 127){
-      	//char c = 127;
-      	//char b = 8;
-       	write(1,&last_char,1);	
-      	//write(1,&c,1);
+
+          if(position>0){
+          char c = 0x1B;
+          char b = 0x5B;
+
+          //save cursor location
+          write(1,&c,1);  
+          write(1,&b,1);
+          write(1,"s",1);
+
+          int temp = position;
+
+          while(position!=0){
+            write(1,"\b",1);
+            position --;
+          }
+
+          //clear line to the end
+          write(1,&c,1);  
+          write(1,&b,1);
+          write(1,"K",1);  
+
+          //shift everything left by 1 unit
+          position = temp;
+
+          while(position<index){
+            cmd[position-1]=cmd[position];
+            position++;
+          }
+
+          cmd[index]='\0';
+          index--;
+          write(1,&cmd,index);
+          //restore cursor location
+          write(1,&c,1);  
+          write(1,&b,1);
+          write(1,"u",1);
+
+          write(1,"\b",1);
+          position=temp-1; 
+
+          }
+         
       }   		  	
 
       	
@@ -126,10 +161,10 @@ int main (int argc, char ** argv, char **envp) {
      
       } else {
       	write(1, &last_char, 1);
-		cmd[index]=last_char;
-		index ++;
-		position++;
-		counter ++;
+    		cmd[index]=last_char;
+    		index ++;
+    		position++;
+    		
       }
 
     } 
@@ -395,9 +430,17 @@ void CD(char *cmd[0]){
 
 	}else if(strcmp(cmd[1],".")==0){
 	
+    strcpy(lastLocation,pwd); 
+
+	}else if(strncmp(cmd[1],"/",1)==0){
+  
+    strcpy(lastLocation,pwd); 
+    if(chdir(cmd[1])<0){
+      printf("error: %s\n", strerror(errno));
+    }
 
 
-	}else{
+  }else{
 
 		strcpy(lastLocation,pwd);	
 
