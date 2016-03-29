@@ -181,12 +181,12 @@ int main (int argc, char ** argv, char **envp) {
     // Execute the command, handling built-in commands separately 
     // Just echo the command line for now
     // write(1, cmd, strnlen(cmd, MAX_INPUT));
-	eva(cmd);
+	eva(cmd,envp);
   }
 
   return 0;
 }
-void eva(char* cmd){
+void eva(char* cmd,char **envp){
 
 		char *argv[MAX_ARG]; /*Argument list*/
 		char buf[MAX_INPUT]; /*Copy of command line*/
@@ -217,15 +217,15 @@ void eva(char* cmd){
 				/*find path of binary file*/
 				char newPath[1028] = "";			
 				findPath(argv[0],newPath);
-				printf("path is %i\n",(int)*newPath );
+				printf("path is %s\n",newPath );
 					
-					if(strcmp(newPath,"\0")){
+					if(newPath[0] != 0){
 						
 						#ifdef d
 							fprintf(stderr,"RUNNING : %s\n",cmd);
 						#endif
 
-						if(execve(newPath,argv,NULL) < 0){
+						if(execve(newPath,argv,envp) < 0){
 							printf("Error on executing program %s with error : %s\n",newPath,strerror(errno));
 							exit(1);
 						}
@@ -234,7 +234,7 @@ void eva(char* cmd){
 					}else{
 					/*path not found*/
 					fprintf(stderr,"%s : command not found\n",argv[0]);
-					exit(127);
+					exit(0x7f);
 					}
 				}else{
 						/*in parent, wait for child to finish*/				
@@ -320,7 +320,7 @@ void findPath(char *path,char newPath[]){
 		strcpy(newPath,path);
 	}	
 	else{ 
-		newPath = NULL;
+		*newPath = 0;
 		}
 	}	
 	
@@ -338,14 +338,14 @@ void findPath(char *path,char newPath[]){
 			if(file_exist(fullPath)){	
 				strcpy(newPath,fullPath);
 				foundPath = 1;
-				printf("asfsdfasdf");
 				break;
 			}
 			i++;
 		}
 		
-		if(foundPath == 0)
-			newPath = NULL;
+		if(!foundPath){
+			*newPath = 0;
+			}
 	}
 
 	
@@ -457,7 +457,7 @@ void CD(char *cmd[0]){
 }
 
 void ECHO(char *cmd[]){
-char c;
+	char c;
 	int i = 1;
 	char *value;
 	char *name;
@@ -470,8 +470,9 @@ char c;
 			name = cmd[i];
 	
 			if(strlen(++name) != 0){
-				if((c = *name) == '?'){				
-					fprintf(stderr,"%d",status);
+				if((c = *name) == '?'){	
+						
+					fprintf(stderr,"%d",status>>8);
 					if(strlen(++name) != 0){
 						write(1,name,strlen(name));
 					}
@@ -521,23 +522,23 @@ void SET(char *cmd[0]){
 	valid++;
 		
 	if(valid==3){
-		fprintf(stderr,"name = %s, value = %s\n",cmd[1],cmd[3]);
+		/*fprintf(stderr,"name = %s, value = %s\n",cmd[1],cmd[3]);*/
 		/*first check if value overlap, if yes concat new value with previous value ans set again*/
-		char *prev = getenv(cmd[1]);
+		/*char *prev = getenv(cmd[1]);
 		if(prev != NULL){
-			/*value already existd*/
+			value already existd
 			char newEnv[1024];
 			strcpy(newEnv,cmd[3]);
 			strcat(newEnv,prev);
 			if(setenv(cmd[1],newEnv,1))
 				fprintf(stderr,"Error in set env with error:%s\n",strerror(errno));
-			//fprintf(stderr,"new Path: %s\n",getenv("PATH"));
-		}else{
+			fprintf(stderr,"new Path: %s\n",getenv("PATH"));
+		}else{*/
 			/*value not exist, add new value into env*/
-			if(setenv(cmd[1],cmd[3],0))
+			if(setenv(cmd[1],cmd[3],1))
 				fprintf(stderr,"Error in set env with error:%s\n",strerror(errno));
 			//fprintf(stderr,"new Path 2: %s\n",getenv(cmd[1]));
-		}
+		//}
 	}
 }
 
