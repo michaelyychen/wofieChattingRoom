@@ -12,8 +12,9 @@ int parse(char buf[],char *argv[]);
 /**
 *Helper function to evaluate commnand line
 *@param char cmd[]: command line
+*@param char** envp: environmental variables
 **/
-void eva(char cmd[]);
+void eva(char cmd[],char **envp);
 
 /**
 *Helper function to check if command is build in, if yes, handle them
@@ -26,7 +27,7 @@ void buildIn(char *cmd[], int *build_In);
 *Helper function to find path to binary file
 *@param char* file
 *@param char newPath[]
-*return 0 if not found, 1 if found
+*set newFile to NUll is no valid path is found
 */
 void findPath(char *file,char newFile[]);
 

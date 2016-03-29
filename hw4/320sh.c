@@ -454,6 +454,16 @@ void CD(char *cmd[0]){
 
 	}
 	free(pwd);
+	
+	/*if pwd is changed, reflect on environ*/
+	char *PWD = malloc(100);
+	getcwd(PWD,100);
+	if(strcmp(PWD,getenv("PWD"))){
+		if(setenv("PWD",PWD,1))
+				fprintf(stderr,"Error in set env with error:%s\n",strerror(errno));
+	}
+	
+	free(PWD);
 }
 
 void ECHO(char *cmd[]){
