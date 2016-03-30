@@ -70,19 +70,53 @@ void PWD();
 **/
 void HELP();
 
+/**
+*Helper to move cursor left 1 position
+**/
 void Left();
+
+/**
+*Helper to move cursor right 1 position
+**/
 void Right();
+
+/**
+*Helper to save current cursor position
+**/
 void saveCursor();
+
+
+/**
+*Helper to restore  cursor to saved position
+**/
 void restoreCursor();
+
+/**
+*Helper to clean line starting from cursor
+**/
 void clearLine();
+
+/**
+*Helper to clean while line
+**/
+void clearWholeLine();
+
+/**
+*Helper to save each cmd into buffer
+**/
 void saveHistory(char*cmd);
+
+
 void printPromptDirectory();
 
-void clearWholeLine();
+
 void splitPath(char *cmd[]);
 
 
-void historyFile(int mode,char * list);
+/**
+*Helper function: read and write from file history
+**/
+void historyFile(int mode);
 
 /**
 *helper function to find value of specify descriptor

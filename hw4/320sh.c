@@ -43,8 +43,11 @@ int main (int argc, char ** argv, char **envp) {
 		if(opt == 'd')
 			debug = 1;
 	}
+
   splitPath(tokens);
- 
+ 	
+  /*load cmdhistsory file*/
+  historyFile(0);
 
   while (!finished) {
     char *cursor;
@@ -103,7 +106,7 @@ int main (int argc, char ** argv, char **envp) {
 		         
 		         //copy history to cmd
 		         
-		         strcpy(cmd,cmdHistory[historyCounter]);
+		         strcpy(cmd,cmdHistory[historyCounter+1]);
 		         historyCounter++;
 		         index = strlen(cmd);
 		         restoreCursor();
@@ -127,7 +130,7 @@ int main (int argc, char ** argv, char **envp) {
 		         
 		         //copy history to cmd
 		         
-		         strcpy(cmd,cmdHistory[historyCounter]);
+		         strcpy(cmd,cmdHistory[historyCounter-1]);
 		         historyCounter--;
 		         index = strlen(cmd);
 		         restoreCursor();
@@ -280,7 +283,9 @@ int main (int argc, char ** argv, char **envp) {
     memset(&cmd,0,1024);
 
   }
-  
+ 
+
+
   return 0;
 }
 
@@ -570,6 +575,7 @@ void buildIn(char* cmd[], int *build_In){
 		/*exit program*/
 		write(1,"PROGRAM EXITING\n",17);
 		*build_In = 1;
+		 historyFile(1);
 		exit(EXIT_SUCCESS);
 	}else if(!strcmp(cmd[0],"cd")){		
 		/*call cd program*/		
@@ -798,27 +804,36 @@ void HELP(){
 	help					print help meun									\n");
 }
 
-void historyFile(int mode,char * list){
+// mode: 1-write 0 - read
+void historyFile(int mode){
 
    FILE *fp;
+   char str [1024];
+   int index = 1;
+//   char*token;
+   
 
    char* path = getenv("HOME");
    strcat(path,"/history.txt");
-   fp = fopen(path, "w+");
+   //fp = fopen(path, "w+");
 
    //writing to file
    if (mode == 1){
-   		strcat(list,"\n");
-   	 	fputs(list, fp);
-
-   }else{
-
-   		fgets(list, 255, (FILE*)fp);
+   	fp = fopen(path, "w");
+   		while(strcmp(cmdHistory[index],"")!=0){
+   			 strcpy(str,cmdHistory[index]);
+   			 strcat(str, "\n");  
+   			
+  			 fputs(str, fp);
+  			 index ++;
+   		}
    		
-
+   }else{
+   	fp = fopen(path, "r");
+   		fgets(str, 255,fp);
+   		printf("recnet history%s\n",str );
+   		
    }
-
-
 
    fclose(fp);
 }
