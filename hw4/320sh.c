@@ -12,7 +12,14 @@
 
 char *tokens[100];
 char lastLocation[100];
+char cmdHistory[50][MAX_INPUT];
 int status = 0;
+
+char cc = 0x1B;
+char bb = 0x5B;
+
+
+
 int main (int argc, char ** argv, char **envp) {
 
   int finished = 0;
@@ -23,6 +30,7 @@ int main (int argc, char ** argv, char **envp) {
 
   splitPath(tokens);
  
+
   while (!finished) {
     char *cursor;
    // char *originalPos;
@@ -31,13 +39,10 @@ int main (int argc, char ** argv, char **envp) {
     int count;
     int position = 0;
     index = 0;
+    int historyCounter=0;
+
     // Print the prompt
-    char *pwd = malloc(100);
-  	getcwd(pwd,100);
-  	write(1,"[",1);
-  	write(1,pwd,strlen(pwd));
-  	write(1,"]",1);
-  	free(pwd);
+   	printPromptDirectory();
     
     rv = write(1, prompt, strlen(prompt));;
     if (!rv) { 
@@ -69,9 +74,38 @@ int main (int argc, char ** argv, char **envp) {
       	//	index ++;
       		cursor++;
       		read(0,cursor,1);
-		    	if(*cursor == 0x41){
-	
-      		write(1,"up\n",3);
+		    
+		    if(*cursor == 0x41){
+				
+		    	if(strcmp(cmdHistory[historyCounter],"")!=0){
+
+		    	while(position!=0){
+		            Left();
+		            position --;
+		          }
+
+		         clearLine();
+		         //clean cmd
+		         memset(cmd,0,1024); 
+		         
+		         //copy history to cmd
+		         
+		         strcpy(cmd,cmdHistory[historyCounter]);
+		         historyCounter++;
+		         index = strlen(cmd);
+		         
+		         write(1,cmd,index);
+
+		         while(position!=index){
+		            Right();
+		            position ++;
+		          }	
+
+		         Left(); 
+		         position --;
+
+		    	}
+		          
 
       		}
       		else if(*cursor == 0x42){
@@ -81,17 +115,15 @@ int main (int argc, char ** argv, char **envp) {
       		else if(*cursor == 0x43){
 
       		if(position!=index){
-            Right();
+          		 Right();
 	      		position ++;
 	      	}
 
       		}
       		else{
 
-
-
 	      		if(position!=0){
-	      	  Left();
+	      	  	Left();
 	      		position --;
 	      		}
       
@@ -102,13 +134,10 @@ int main (int argc, char ** argv, char **envp) {
       }else if(last_char == 127){
 
           if(position>0){
-          char c = 0x1B;
-          char b = 0x5B;
+
 
           //save cursor location
-          write(1,&c,1);  
-          write(1,&b,1);
-          write(1,"s",1);
+          saveCursor();
 
           int temp = position;
 
@@ -118,9 +147,7 @@ int main (int argc, char ** argv, char **envp) {
           }
 
           //clear line to the end
-          write(1,&c,1);  
-          write(1,&b,1);
-          write(1,"K",1);  
+		  clearLine();
 
           //shift everything left by 1 unit
           position = temp;
@@ -134,9 +161,7 @@ int main (int argc, char ** argv, char **envp) {
           index--;
           write(1,cmd,index);
           //restore cursor location
-          write(1,&c,1);  
-          write(1,&b,1);
-          write(1,"u",1);
+          restoreCursor();
 
           write(1,"\b",1);
           position=temp-1; 
@@ -180,14 +205,10 @@ int main (int argc, char ** argv, char **envp) {
         //insert the char
         cmd[position]=last_char;
 
-        //reprint cmd to stdout
-        char c = 0x1B;
-        char b = 0x5B;
+        
 
         //save cursor location
-        write(1,&c,1);  
-        write(1,&b,1);
-        write(1,"s",1);
+        saveCursor();
 
         temp = position;
 
@@ -195,9 +216,7 @@ int main (int argc, char ** argv, char **envp) {
             Left();
             position --;
           }
-        write(1,&c,1);  
-        write(1,&b,1);
-        write(1,"K",1);  
+        clearLine(); 
 
         position = temp;
 
@@ -206,9 +225,7 @@ int main (int argc, char ** argv, char **envp) {
 
         write(1,cmd,index);
         //restore cursor location
-        write(1,&c,1);  
-        write(1,&b,1);
-        write(1,"u",1);
+		restoreCursor();
         Right();
 
         }
@@ -229,11 +246,13 @@ int main (int argc, char ** argv, char **envp) {
     // Execute the command, handling built-in commands separately 
     // Just echo the command line for now
     // write(1, cmd, strnlen(cmd, MAX_INPUT));
+    saveHistory(cmd);
+   
 	eva(cmd,envp);
-  memset(&cmd,0,1024);
+    memset(&cmd,0,1024);
 
   }
-
+  
   return 0;
 }
 void eva(char* cmd,char **envp){
@@ -642,7 +661,7 @@ void HELP(){
 	help					print help meun									\n");
 }
 
-void history(int mode,char * list){
+void historyFile(int mode,char * list){
 
    FILE *fp;
 
@@ -669,23 +688,65 @@ void history(int mode,char * list){
 
 
 void Left(){
-            char c = 0x1B;
-          char b = 0x5B;
-    write(1,&c,1);  
-    write(1,&b,1);
 
+    write(1,&cc,1);  
+    write(1,&bb,1);
     write(1,"D",1);
 }
 
 
 void Right(){
-            char c = 0x1B;
-          char b = 0x5B;
-    write(1,&c,1);  
-    write(1,&b,1);
+    write(1,&cc,1);  
+    write(1,&bb,1);
 
     write(1,"C",1);
 }
 
+void saveCursor(){
+    write(1,&cc,1);  
+    write(1,&bb,1);
+    write(1,"s",1);
+}
+
+void restoreCursor(){
+    write(1,&cc,1);  
+    write(1,&bb,1);
+    write(1,"u",1);
+}
+
+void clearLine(){
+    write(1,&cc,1);  
+    write(1,&bb,1);
+    write(1,"K",1);
+}
+
+void clearWholeLine(){
+    write(1,&cc,1);  
+    write(1,&bb,1);
+    write(1,"2",1);
+    write(1,"K",1);
+}
+
+void saveHistory(char* cmd){
+
+int index =49;
+char*token;
+token = strtok(cmd,"\n");
+//move everything to the right by 1 unit
+while(index !=0){
+strcpy(cmdHistory[index],cmdHistory[index-1]);
+index--;
+}
+strcpy(cmdHistory[0],token);
 
 
+}
+
+void printPromptDirectory(){
+	char *pwd = malloc(100);
+  	getcwd(pwd,100);
+  	write(1,"[",1);
+  	write(1,pwd,strlen(pwd));
+  	write(1,"]",1);
+  	free(pwd);
+}

@@ -70,8 +70,14 @@ void HELP();
 
 void Left();
 void Right();
+void saveCursor();
+void restoreCursor();
+void clearLine();
+void saveHistory(char*cmd);
+void printPromptDirectory();
 
+void clearWholeLine();
 void splitPath(char *cmd[]);
 
 
-void history(int mode,char * list);
+void historyFile(int mode,char * list);
