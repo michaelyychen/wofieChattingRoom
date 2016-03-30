@@ -14,7 +14,9 @@ int parse(char buf[],char *argv[]);
 *@param char cmd[]: command line
 *@param char** envp: environmental variables
 **/
-void eva(char cmd[],char **envp);
+void eva(char cmd[]);
+
+void exe(char**argv);
 
 /**
 *Helper function to check if command is build in, if yes, handle them
@@ -81,3 +83,36 @@ void splitPath(char *cmd[]);
 
 
 void historyFile(int mode,char * list);
+
+/**
+*helper function to find value of specify descriptor
+**/
+int parseInt(char *arg);
+
+/**helper to check argument if there is redirection
+*@param argv: argument list
+*@return: 1 if redirection, 0 otherwise
+**/
+int checkRedir(char **argv);
+
+/**helper to handle redirection >
+*@param argv
+*@param out
+**/
+void redirOut(char **argv, int out,int count);
+
+/**helper to handle redirection <
+*@param argv
+*@param in
+**/
+void redirIn(char **argv, int in,int count);
+
+/**helper to handle redirection |
+*@param argv
+**/
+void redirPipe(char **argv);
+
+/*Wrapper for open*/
+int OPEN(const char* pathname, int flags, mode_t mode);
+
+void directFile();
