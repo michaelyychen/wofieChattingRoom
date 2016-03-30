@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <fcntl.h>
 #include <errno.h>
 #include "myHeader.h"
 // Assume no input line will be longer than 1024 bytes
@@ -18,16 +20,29 @@ int status = 0;
 char cc = 0x1B;
 char bb = 0x5B;
 
-
+int debug = 0;
+char **ENVP;
+char cmd[MAX_INPUT];
+char direct = 0;
+int IN = 0;
+int OUT = 1;
+int COUNT = 0;
+int fd = 0;
+  
 
 int main (int argc, char ** argv, char **envp) {
-
+  
+  ENVP = envp;
   int finished = 0;
   char *prompt = "  320sh> ";
-  char cmd[MAX_INPUT];
   
   int index = 0;
-
+  /*debug flag*/
+	int opt = 0;
+	while((opt = getopt(argc,argv,"d")) != -1){
+		if(opt == 'd')
+			debug = 1;
+	}
   splitPath(tokens);
  
 
@@ -261,26 +276,26 @@ int main (int argc, char ** argv, char **envp) {
     // write(1, cmd, strnlen(cmd, MAX_INPUT));
     saveHistory(cmd);
    
-	eva(cmd,envp);
+	eva(cmd);
     memset(&cmd,0,1024);
 
   }
   
   return 0;
 }
-void eva(char* cmd,char **envp){
+
+void eva(char* cmd){
 
 		char *argv[MAX_ARG]; /*Argument list*/
 		char buf[MAX_INPUT]; /*Copy of command line*/
 		int job;			 /*hold job type, background if 0, foreground otherwise*/
-		pid_t pid;			 /*new process id*/
+		
 	
 		
 		strcpy(buf, cmd);
 
 		/*parse command line*/
 		job = parse(buf,argv);
-		 write(1,"s",1);
 
 		printf("job = %d\n",job);
 		  
@@ -292,22 +307,37 @@ void eva(char* cmd,char **envp){
 		int build_in = 0;
 		/*check to see if command is buildin, handle them if yes */
 		buildIn(argv,&build_in);
+	
+			if((build_in == 0) && (checkRedir(argv) == 0)){
+				/* if not a build, nor a redirection*/
+				exe(argv);		
+			}
+		
+}
 
-			if(build_in == 0){	
-				/*not build, fork a child process*/
+void exe(char **argv){
+	pid_t pid;			 /*new process id*/
+		/*not build, fork a child process*/
 				if((pid = fork()) == 0){
+				
+				/*if there is redirection need, direct file reference*/
+				if(direct)
+					directFile();
+					
 				/*find path of binary file*/
 				char newPath[1028] = "";			
 				findPath(argv[0],newPath);
-				printf("path is %s\n",newPath );
+				//printf("path is %s\n",newPath );
 					
 					if(newPath[0] != 0){
 						
 						#ifdef d
 							fprintf(stderr,"RUNNING : %s\n",cmd);
 						#endif
+						if(debug)
+							fprintf(stderr,"RUNNING : %s\n",cmd);
 
-						if(execve(newPath,argv,envp) < 0){
+						if(execve(newPath,argv,ENVP) < 0){
 							printf("Error on executing program %s with error : %s\n",newPath,strerror(errno));
 							exit(1);
 						}
@@ -327,6 +357,8 @@ void eva(char* cmd,char **envp){
 								#ifdef d
 									fprintf(stderr,"ENDED : %s (ret:%d)\n",cmd,WEXITSTATUS(status));
 								#endif
+								if(debug)
+									fprintf(stderr,"ENDED : %s (ret:%d)\n",cmd,WEXITSTATUS(status));
 									return;
 							}else{
 							/*something wrong when child terminate*/
@@ -337,11 +369,103 @@ void eva(char* cmd,char **envp){
 							fprintf(stderr,"ERROR ON WAITPID with error:%s\n",strerror(errno));
 						}
 					}
-			}
+}
 
+int checkRedir(char ** argv){
+	int redir = 0;
+	/*search through all argv until find > , < or |*/
+	char *arg = argv[0];
+	int count = 0;
+	char *c;
 	
+	while(arg != NULL){
+		c = arg;
+		for(int i = 0;i<strlen(arg);i++){
 			
+			if(*c == '>'){	
+			//	printf("OUT\n");
+				if(strlen(arg) > 1)
+					OUT = parseInt(arg);
+				redir = 1;
+				direct = '>';
+				COUNT = count;
+				redirOut(argv,OUT,count);
+				}
+			else if(*c == '<'){
+			//	printf("IN\n");
+				if(strlen(arg) > 1)
+					IN = parseInt(arg);
+				redir = 1;
+				direct = '<';
+				COUNT = count;
+				redirIn(argv,IN,count);
+				}
+			else if(*c == '|'){
+			//	printf("PIPE\n");
+				redir = 1;
+				redirPipe(argv);
+				}
+			c++;
+		}
+		arg = argv[++count];
 		
+	}
+	return redir;
+}
+
+void redirOut(char **argv, int out,int count){
+	/*direct output of program to fd out*/
+	
+	fd = OPEN(argv[count+1],O_RDWR|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
+
+	argv[count] = NULL;
+	
+	exe(argv);
+
+}
+
+void redirIn(char **argv, int in,int count){
+
+	fd = OPEN(argv[count+1],O_RDWR|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
+
+	argv[count] = NULL;
+	
+	exe(argv);
+}
+
+void redirPipe(char **argv){
+
+}
+
+int parseInt(char *arg){
+
+	char *c = arg;
+	int value = 0;
+
+	while(*c != '>' && *c != '<'){	
+		value = value*10 + ((int)*c - 48);		
+		c++;
+	}
+	//printf("value is %d\n",value);
+	return value;
+}
+
+void directFile(){
+/*for now, assume file name is follow by > or < sign */
+	if(direct == '>'){
+		
+		dup2(fd,OUT);
+		direct = 0;
+		COUNT = 0;
+		OUT = 0;	
+		fd = 0;
+	}else if(direct == '<'){
+		dup2(fd,IN);
+		COUNT = 0;
+		IN = 0;
+		direct = 0;
+		fd = 0;
+	}		
 }
 	
 
@@ -762,4 +886,12 @@ void printPromptDirectory(){
   	write(1,pwd,strlen(pwd));
   	write(1,"]",1);
   	free(pwd);
+}
+
+int OPEN(const char* pathname, int flags, mode_t mode){
+	int result;
+	result = open(pathname,flags,mode);
+	if(result < 0)
+		fprintf(stderr,"Open file: %s with error: %s\n",pathname,strerror(errno));
+	return result;
 }
