@@ -30,7 +30,7 @@ int main (int argc, char ** argv, char **envp) {
     int rv;
     int count;
     int position = 0;
-
+    index = 0;
     // Print the prompt
     char *pwd = malloc(100);
   	getcwd(pwd,100);
@@ -80,34 +80,25 @@ int main (int argc, char ** argv, char **envp) {
       		}
       		else if(*cursor == 0x43){
 
-      		char c = 0x1B;
-      		char b = 0x5B;
-
       		if(position!=index){
-	      		write(1,&c,1);	
-	      		write(1,&b,1);
-	      		write(1,"C",1);
+            Right();
 	      		position ++;
 	      	}
 
       		}
       		else{
 
-      		char c = 0x1B;
-      		char b = 0x5B;
+
 
 	      		if(position!=0){
-	      		write(1,&c,1);	
-	      		write(1,&b,1);
-
-	      		write(1,"D",1);
+	      	  Left();
 	      		position --;
 	      		}
       
       		}
 
       	}
-
+        //backspace
       }else if(last_char == 127){
 
           if(position>0){
@@ -122,7 +113,7 @@ int main (int argc, char ** argv, char **envp) {
           int temp = position;
 
           while(position!=0){
-            write(1,"\b",1);
+            Left();
             position --;
           }
 
@@ -141,7 +132,7 @@ int main (int argc, char ** argv, char **envp) {
 
           cmd[index]='\0';
           index--;
-          write(1,&cmd,index);
+          write(1,cmd,index);
           //restore cursor location
           write(1,&c,1);  
           write(1,&b,1);
@@ -153,18 +144,75 @@ int main (int argc, char ** argv, char **envp) {
           }
          
       }   		  	
-
-      	
+      //new line in case cursor is at the middle of input
+      else if(last_char == 10){
+        while(position!=index){
+          Right();
+          position++;
+        }
+        write(1, &last_char, 1);
+        cmd[index]=last_char;
+      }	
 
       else if(last_char == 3) {
         write(1, "^c", 2);
      
       } else {
-      	write(1, &last_char, 1);
-    		cmd[index]=last_char;
-    		index ++;
-    		position++;
-    		
+
+        //writes to the end of the string
+        if(position == index){
+        write(1, &last_char, 1);
+        cmd[index]=last_char;
+          
+
+        index ++;
+        position++;
+        
+        }else{
+        //insert inplace
+
+        int temp = position;
+        //move everything to the right by 1 unit
+        while(temp<=index){
+          cmd[temp+1] = cmd[temp];
+          temp++;
+        }
+        //insert the char
+        cmd[position]=last_char;
+
+        //reprint cmd to stdout
+        char c = 0x1B;
+        char b = 0x5B;
+
+        //save cursor location
+        write(1,&c,1);  
+        write(1,&b,1);
+        write(1,"s",1);
+
+        temp = position;
+
+          while(position!=0){
+            Left();
+            position --;
+          }
+        write(1,&c,1);  
+        write(1,&b,1);
+        write(1,"K",1);  
+
+        position = temp;
+
+        index ++;
+        position++;
+
+        write(1,cmd,index);
+        //restore cursor location
+        write(1,&c,1);  
+        write(1,&b,1);
+        write(1,"u",1);
+        Right();
+
+        }
+
       }
 
     } 
@@ -182,6 +230,8 @@ int main (int argc, char ** argv, char **envp) {
     // Just echo the command line for now
     // write(1, cmd, strnlen(cmd, MAX_INPUT));
 	eva(cmd,envp);
+  memset(&cmd,0,1024);
+
   }
 
   return 0;
@@ -618,11 +668,24 @@ void history(int mode,char * list){
 }
 
 
+void Left(){
+            char c = 0x1B;
+          char b = 0x5B;
+    write(1,&c,1);  
+    write(1,&b,1);
+
+    write(1,"D",1);
+}
 
 
+void Right(){
+            char c = 0x1B;
+          char b = 0x5B;
+    write(1,&c,1);  
+    write(1,&b,1);
 
-
-
+    write(1,"C",1);
+}
 
 
 
