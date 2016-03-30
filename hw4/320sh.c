@@ -41,10 +41,12 @@ int main (int argc, char ** argv, char **envp) {
     index = 0;
     int historyCounter=0;
 
+    //save leftmost cursor position
+    saveCursor();
     // Print the prompt
    	printPromptDirectory();
     
-    rv = write(1, prompt, strlen(prompt));;
+    rv = write(1, prompt, strlen(prompt));
     if (!rv) { 
       finished = 1;
       break;
@@ -75,16 +77,12 @@ int main (int argc, char ** argv, char **envp) {
       		cursor++;
       		read(0,cursor,1);
 		    
+		    //up
 		    if(*cursor == 0x41){
 				
-		    	if(strcmp(cmdHistory[historyCounter],"")!=0){
+		    	if(strcmp(cmdHistory[historyCounter+1],"")!=0){
 
-		    	while(position!=0){
-		            Left();
-		            position --;
-		          }
-
-		         clearLine();
+		    	 clearWholeLine();
 		         //clean cmd
 		         memset(cmd,0,1024); 
 		         
@@ -93,24 +91,39 @@ int main (int argc, char ** argv, char **envp) {
 		         strcpy(cmd,cmdHistory[historyCounter]);
 		         historyCounter++;
 		         index = strlen(cmd);
-		         
+		         restoreCursor();
+		         printPromptDirectory();
+  				 write(1, prompt, strlen(prompt));
 		         write(1,cmd,index);
 
-		         while(position!=index){
-		            Right();
-		            position ++;
-		          }	
-
-		         Left(); 
-		         position --;
-
+		         position = index;
+				        
 		    	}
 		          
-
+		    //down
       		}
       		else if(*cursor == 0x42){
 
-      		write(1,"down\n",3);	
+      			if(historyCounter>0){
+
+		    	 clearWholeLine();
+		         //clean cmd
+		         memset(cmd,0,1024); 
+		         
+		         //copy history to cmd
+		         
+		         strcpy(cmd,cmdHistory[historyCounter]);
+		         historyCounter--;
+		         index = strlen(cmd);
+		         restoreCursor();
+		         printPromptDirectory();
+  				 write(1, prompt, strlen(prompt));
+		         write(1,cmd,index);
+
+		         position = index;
+				        
+		    	}	
+      		
       		}
       		else if(*cursor == 0x43){
 
@@ -729,15 +742,15 @@ void clearWholeLine(){
 
 void saveHistory(char* cmd){
 
-int index =49;
-char*token;
-token = strtok(cmd,"\n");
-//move everything to the right by 1 unit
-while(index !=0){
-strcpy(cmdHistory[index],cmdHistory[index-1]);
-index--;
-}
-strcpy(cmdHistory[0],token);
+	int index =49;
+	char*token;
+	token = strtok(cmd,"\n");
+	//move everything to the right by 1 unit
+	while(index !=1){
+	strcpy(cmdHistory[index],cmdHistory[index-1]);
+	index--;
+	}
+	strcpy(cmdHistory[1],token);
 
 
 }
