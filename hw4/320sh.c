@@ -16,7 +16,7 @@ char *tokens[100];
 char lastLocation[100];
 char cmdHistory[50][MAX_INPUT];
 int status = 0;
-
+char historyLocation[100] = "";
 char cc = 0x1B;
 char bb = 0x5B;
 
@@ -28,8 +28,7 @@ int IN = 0;
 int OUT = 1;
 int COUNT = 0;
 int fd = 0;
-  
-
+int fpp;
 int main (int argc, char ** argv, char **envp) {
   
   ENVP = envp;
@@ -45,7 +44,12 @@ int main (int argc, char ** argv, char **envp) {
 	}
 
   splitPath(tokens);
- 	
+
+  
+  strcat(historyLocation ,getenv("HOME"));
+  strcat(historyLocation,"/history.txt");
+  fpp = OPEN(historyLocation,O_RDWR|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
+
   /*load cmdhistsory file*/
   historyFile(0);
 
@@ -82,7 +86,7 @@ int main (int argc, char ** argv, char **envp) {
       rv = read(0, cursor, 1);
   	  
       last_char = *cursor;
-      
+     
       if(last_char == 0x1b){
       	cursor++;
       //	cmd[index]=0x1b;
@@ -194,7 +198,7 @@ int main (int argc, char ** argv, char **envp) {
           //restore cursor location
           restoreCursor();
 
-          write(1,"\b",1);
+          Left();
           position=temp-1; 
 
           }
@@ -202,12 +206,14 @@ int main (int argc, char ** argv, char **envp) {
       }   		  	
       //new line in case cursor is at the middle of input
       else if(last_char == 10){
+      	
         while(position!=index){
           Right();
           position++;
         }
         write(1, &last_char, 1);
         cmd[index]=last_char;
+
       }	
 
       else if(last_char == 3) {
@@ -219,7 +225,8 @@ int main (int argc, char ** argv, char **envp) {
         if(position == index){
         write(1, &last_char, 1);
         cmd[index]=last_char;
-          
+        
+
 
         index ++;
         position++;
@@ -576,6 +583,7 @@ void buildIn(char* cmd[], int *build_In){
 		write(1,"PROGRAM EXITING\n",17);
 		*build_In = 1;
 		 historyFile(1);
+		 close(fpp);
 		exit(EXIT_SUCCESS);
 	}else if(!strcmp(cmd[0],"cd")){		
 		/*call cd program*/		
@@ -807,35 +815,56 @@ void HELP(){
 // mode: 1-write 0 - read
 void historyFile(int mode){
 
-   FILE *fp;
-   char str [1024];
+  
+   char str [1024]="";
    int index = 1;
-//   char*token;
-   
+   char*token;
+   //char* path = getenv("HOME");
+   //strcat(path,"/history.txt");
 
-   char* path = getenv("HOME");
-   strcat(path,"/history.txt");
+
    //fp = fopen(path, "w+");
-
+   int temp;
    //writing to file
    if (mode == 1){
-   	fp = fopen(path, "w");
-   		while(strcmp(cmdHistory[index],"")!=0){
+   		
+   		remove(historyLocation);
+
+		fpp = OPEN(historyLocation,O_RDWR|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
+
+   		while(index<50&&strcmp(cmdHistory[index],"")!=0){
    			 strcpy(str,cmdHistory[index]);
    			 strcat(str, "\n");  
-   			
-  			 fputs(str, fp);
+   			 
+  			 write(fpp,str, strlen(str));
   			 index ++;
    		}
-   		
-   }else{
-   	fp = fopen(path, "r");
-   		fgets(str, 255,fp);
-   		printf("recnet history%s\n",str );
-   		
-   }
+   
 
-   fclose(fp);
+   	//reading to buffer
+   }else{
+   		temp =(read(fpp, str, 1024));
+   			if(temp<0){
+   				fprintf(stderr,"Read History error: %s\n",strerror(errno));
+				return ;
+   			}
+
+   		
+		token = strtok(str,"\n");
+
+		while(token!=NULL){
+	
+		strcpy(cmdHistory[index],token);
+
+		token = strtok(NULL,"\n");
+		index ++;
+			}
+		}
+   	
+   		close(fpp);
+   
+   
+
 }
 
 
@@ -879,10 +908,14 @@ void clearWholeLine(){
     write(1,"K",1);
 }
 
+
 void saveHistory(char* cmd){
 
 	int index =49;
 	char*token;
+	if(strcmp(cmd,"\n")==0){
+		return;
+	}
 	token = strtok(cmd,"\n");
 	//move everything to the right by 1 unit
 	while(index !=1){

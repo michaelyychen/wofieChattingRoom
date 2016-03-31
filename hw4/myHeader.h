@@ -112,7 +112,6 @@ void printPromptDirectory();
 
 void splitPath(char *cmd[]);
 
-
 /**
 *Helper function: read and write from file history
 **/
