@@ -327,7 +327,7 @@ int FORK(){
 void exe(char **argv){
 		pid_t pid;			 /*new process id*/
 		
-		if((pid = fork()) == 0){			
+		if((pid = FORK()) == 0){			
 			/*in child*/		
 			/*if there is redirection need, direct file reference*/
 			if(checkRedir(argv))
@@ -448,9 +448,56 @@ void redirIn(char **argv, int in,int count){
 	argv[count] = NULL;
 
 }
+void EXECVE(char *path, char* argv[]){
+	#ifdef d
+		fprintf(stderr,"RUNNING : %s\n",cmd);
+	#endif
+	if(debug)
+		fprintf(stderr,"RUNNING : %s\n",cmd);
 
+	//if(execve(newPath,argv,ENVP) < 0){
+	//	printf("Error on executing program %s with error : %s\n",newPath,strerror(errno));
+	//	exit(1);
+	//}
+	
+}
 void redirPipe(char **argv){
-
+	int fd[2];
+	pid_t pid;
+	int i = 3;
+	char *argv1[2] = {"ls",NULL};
+	char *argv2[3] = {"grep","m",NULL};
+	char *argv3[3] = {"grep","y",NULL};
+	int pdi =0;
+	
+	while(i){
+	pipe(fd);
+		if((pid = FORK()) == 0){
+			dup2(pdi,0);
+			if(i == 3){			
+			dup2(fd[1],1);
+			close(fd[0]);
+			execve("/bin/ls",argv1,ENVP);			
+			}else if(i == 2){
+			dup2(fd[1],1);
+			close(fd[0]);
+			execve("/bin/grep",argv2,ENVP);
+			}
+			else{
+			close(fd[1]);	
+			close(fd[0]);
+			execve("/bin/grep",argv3,ENVP);
+			}
+			exit(0);
+		}else{
+			waitpid(-1,&status,0);
+			close(fd[1]);
+			pdi = fd[0];
+			}
+			i--;
+	}
+	exit(0);
+	
 }
 
 int parseInt(char *arg){

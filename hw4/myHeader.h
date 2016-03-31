@@ -86,7 +86,7 @@ void Right();
 **/
 void saveCursor();
 
-
+void EXECVE(char *path, char* argv[]);
 /**
 *Helper to restore  cursor to saved position
 **/
