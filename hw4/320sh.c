@@ -51,7 +51,7 @@ int main (int argc, char ** argv, char **envp) {
   fpp = OPEN(historyLocation,O_RDWR|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
 
   /*load cmdhistsory file*/
-  //historyFile(0);
+  historyFile(0);
 
   while (!finished) {
     char *cursor;
@@ -81,8 +81,7 @@ int main (int argc, char ** argv, char **envp) {
 	  && (++count < (MAX_INPUT-1))
 	  && (last_char != '\n');
 	cursor++) { 
-     // originalPos=cursor;
-
+  
       rv = read(0, cursor, 1);
   	  
       last_char = *cursor;
@@ -118,9 +117,9 @@ int main (int argc, char ** argv, char **envp) {
 		         printPromptDirectory();
   				 write(1, prompt, strlen(prompt));
 		         write(1,cmd,index);
-		         printf("\n cmd in forloop is %s\n",cmd );
+		      
 		         position = index;
-		       
+		       	 cursor = cmd+position;
 				        
 		    	}
 		          
@@ -145,7 +144,7 @@ int main (int argc, char ** argv, char **envp) {
 		         write(1,cmd,index);
 
 		         position = index;
-				        
+				 cursor = cmd+position;       
 		    	}	
       		
       		}
@@ -269,7 +268,7 @@ int main (int argc, char ** argv, char **envp) {
       }
 
     } 
-    printf("CMD here is %s\n",cmd );
+   
     saveHistory(cmd);
 
    
@@ -970,8 +969,6 @@ void saveHistory(char* cmd){
 	}
 	token = strtok(cmd,"\n");
 	//move everything to the right by 1 unit
-
-	printf("token is %s\n", token);
 	while(index !=1){
 	strcpy(cmdHistory[index],cmdHistory[index-1]);
 	index--;
