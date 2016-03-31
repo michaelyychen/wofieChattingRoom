@@ -18,6 +18,7 @@ void eva(char cmd[]);
 
 void exe(char**argv);
 
+int FORK();
 /**
 *Helper function to check if command is build in, if yes, handle them
 *@param char* cmd
