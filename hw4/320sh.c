@@ -306,6 +306,7 @@ void eva(char* cmd){
 		}
 		if(strcmp(argv[0],"exit") == 0)
 			EXIT();
+			
 		exe(argv);				
 }
 
