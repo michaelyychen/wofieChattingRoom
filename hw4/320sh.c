@@ -113,12 +113,14 @@ int main (int argc, char ** argv, char **envp) {
 		         strcpy(cmd,cmdHistory[historyCounter+1]);
 		         historyCounter++;
 		         index = strlen(cmd);
+
 		         restoreCursor();
 		         printPromptDirectory();
   				 write(1, prompt, strlen(prompt));
 		         write(1,cmd,index);
-
+		         printf("\n cmd in forloop is %s\n",cmd );
 		         position = index;
+		       
 				        
 		    	}
 		          
@@ -170,22 +172,13 @@ int main (int argc, char ** argv, char **envp) {
 
           if(position>0){
 
-
-          //save cursor location
-          saveCursor();
-
+        
           int temp = position;
 
-          while(position!=0){
-            Left();
-            position --;
-          }
-
           //clear line to the end
+          restoreCursor();
 		  clearLine();
-
-          //shift everything left by 1 unit
-          position = temp;
+          
 
           while(position<index){
             cmd[position-1]=cmd[position];
@@ -193,14 +186,20 @@ int main (int argc, char ** argv, char **envp) {
           }
 
           cmd[index]='\0';
-          index--;
-          write(1,cmd,index);
-          //restore cursor location
+          
           restoreCursor();
+		  printPromptDirectory();
+  		  write(1, prompt, strlen(prompt));
+		  write(1,cmd,index-1);
+       
+		  int count = index -temp ;
 
-          Left();
+			while(count!=0){
+				Left();
+				count--;
+			}
           position=temp-1; 
-
+          index--;
           }
          
       }   		  	
@@ -226,7 +225,6 @@ int main (int argc, char ** argv, char **envp) {
         write(1, &last_char, 1);
         cmd[index]=last_char;
         
-
 
         index ++;
         position++;
@@ -271,23 +269,22 @@ int main (int argc, char ** argv, char **envp) {
       }
 
     } 
+    printf("CMD here is %s\n",cmd );
+    saveHistory(cmd);
+
+   
+	eva(cmd);
+    memset(&cmd,0,1024);
+
 
     *cursor = '\0';
-
 
     if (!rv) { 
       finished = 1;
       break;
     }
 
-	
-    // Execute the command, handling built-in commands separately 
-    // Just echo the command line for now
-    // write(1, cmd, strnlen(cmd, MAX_INPUT));
-    saveHistory(cmd);
-   
-	eva(cmd);
-    memset(&cmd,0,1024);
+
 
   }
  
@@ -917,6 +914,7 @@ void clearWholeLine(){
 
 void saveHistory(char* cmd){
 
+
 	int index =49;
 	char*token;
 	if(strcmp(cmd,"\n")==0){
@@ -924,6 +922,8 @@ void saveHistory(char* cmd){
 	}
 	token = strtok(cmd,"\n");
 	//move everything to the right by 1 unit
+
+	printf("token is %s\n", token);
 	while(index !=1){
 	strcpy(cmdHistory[index],cmdHistory[index-1]);
 	index--;
