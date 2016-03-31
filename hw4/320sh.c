@@ -51,7 +51,7 @@ int main (int argc, char ** argv, char **envp) {
   fpp = OPEN(historyLocation,O_RDWR|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
 
   /*load cmdhistsory file*/
-  historyFile(0);
+  //historyFile(0);
 
   while (!finished) {
     char *cursor;
@@ -291,8 +291,6 @@ int main (int argc, char ** argv, char **envp) {
 
   }
  
-
-
   return 0;
 }
 
@@ -301,9 +299,7 @@ void eva(char* cmd){
 		char *argv[MAX_ARG]; /*Argument list*/
 		char buf[MAX_INPUT]; /*Copy of command line*/
 		int job;			 /*hold job type, background if 0, foreground otherwise*/
-		
-	
-		
+			
 		strcpy(buf, cmd);
 
 		/*parse command line*/
@@ -315,34 +311,37 @@ void eva(char* cmd){
 		if(argv[0] == NULL){
 			return;
 		}
-		
-		int build_in = 0;
-		/*check to see if command is buildin, handle them if yes */
-		buildIn(argv,&build_in);
-	
-			if((build_in == 0) && (checkRedir(argv) == 0)){
-				/* if not a build, nor a redirection*/
-				exe(argv);		
-			}
-		
+		if(strcmp(argv[0],"exit") == 0)
+			EXIT();
+		exe(argv);				
 }
 
 void exe(char **argv){
-	pid_t pid;			 /*new process id*/
-		/*not build, fork a child process*/
-				if((pid = fork()) == 0){
+		pid_t pid;			 /*new process id*/
+		
+		if((pid = fork()) == -1){
+			fprintf(stderr,"Error when fork : %s\n",strerror(errno));
+			exit(1);
+		}else if(pid == 0){
+			/*in child*/
+			
+			/*if there is redirection need, direct file reference*/
+			if(checkRedir(argv))
+				directFile();
+		
+	
+			int build_in = 0;
+			/*check to see if command is buildin, handle them if yes */
+			buildIn(argv,&build_in);
 				
-				/*if there is redirection need, direct file reference*/
-				if(direct)
-					directFile();
-					
+			if(!build_in){
 				/*find path of binary file*/
 				char newPath[1028] = "";			
 				findPath(argv[0],newPath);
 				//printf("path is %s\n",newPath );
-					
+			
 					if(newPath[0] != 0){
-						
+				
 						#ifdef d
 							fprintf(stderr,"RUNNING : %s\n",cmd);
 						#endif
@@ -353,34 +352,36 @@ void exe(char **argv){
 							printf("Error on executing program %s with error : %s\n",newPath,strerror(errno));
 							exit(1);
 						}
-						
+				
 						exit(0);
+				}else{
+				/*path not found*/
+				fprintf(stderr,"%s : command not found\n",argv[0]);
+				exit(0x7f);
+				}
+			}
+			exit(0);
+		}else{
+				/*in parent, wait for child to finish*/				
+				if(waitpid(-1,&status,0) >= 0){
+				/*child successfully reap*/
+					if(WIFEXITED(status)){
+					/*child terminate correctly*/
+						#ifdef d
+							fprintf(stderr,"ENDED : %s (ret:%d)\n",cmd,WEXITSTATUS(status));
+						#endif
+						if(debug)
+							fprintf(stderr,"ENDED : %s (ret:%d)\n",cmd,WEXITSTATUS(status));
+							return;
 					}else{
-					/*path not found*/
-					fprintf(stderr,"%s : command not found\n",argv[0]);
-					exit(0x7f);
+					/*something wrong when child terminate*/
+						fprintf(stderr,"Child terminated abnormally with error:%s\n",strerror(errno));
+						return;
 					}
 				}else{
-						/*in parent, wait for child to finish*/				
-						if(waitpid(-1,&status,0) >= 0){
-						/*child successfully reap*/
-							if(WIFEXITED(status)){
-							/*child terminate correctly*/
-								#ifdef d
-									fprintf(stderr,"ENDED : %s (ret:%d)\n",cmd,WEXITSTATUS(status));
-								#endif
-								if(debug)
-									fprintf(stderr,"ENDED : %s (ret:%d)\n",cmd,WEXITSTATUS(status));
-									return;
-							}else{
-							/*something wrong when child terminate*/
-								fprintf(stderr,"Child terminated abnormally with error:%s\n",strerror(errno));
-								return;
-							}
-						}else{
-							fprintf(stderr,"ERROR ON WAITPID with error:%s\n",strerror(errno));
-						}
-					}
+					fprintf(stderr,"ERROR ON WAITPID with error:%s\n",strerror(errno));
+				}
+			}	
 }
 
 int checkRedir(char ** argv){
@@ -465,12 +466,14 @@ int parseInt(char *arg){
 void directFile(){
 /*for now, assume file name is follow by > or < sign */
 	if(direct == '>'){
-		
+	
 		dup2(fd,OUT);
 		direct = 0;
 		COUNT = 0;
 		OUT = 0;	
 		fd = 0;
+			printf("redi and out is :%d\n",OUT);
+		
 	}else if(direct == '<'){
 		dup2(fd,IN);
 		COUNT = 0;
@@ -575,16 +578,19 @@ int file_exist (const char *filePath)
   return (stat(filePath, &temp) == 0);
 }
 
+void EXIT(){
+	write(1,"PROGRAM EXITING\n",17);
+	historyFile(1);
+	close(fpp);
+	exit(EXIT_SUCCESS);
+}
 
 void buildIn(char* cmd[], int *build_In){
 
 	if(!strcmp(cmd[0],"exit")){		
 		/*exit program*/
-		write(1,"PROGRAM EXITING\n",17);
-		*build_In = 1;
-		 historyFile(1);
-		 close(fpp);
-		exit(EXIT_SUCCESS);
+		EXIT();
+
 	}else if(!strcmp(cmd[0],"cd")){		
 		/*call cd program*/		
 		*build_In = 1;

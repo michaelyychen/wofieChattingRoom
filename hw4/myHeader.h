@@ -149,3 +149,5 @@ void redirPipe(char **argv);
 int OPEN(const char* pathname, int flags, mode_t mode);
 
 void directFile();
+
+void EXIT();
