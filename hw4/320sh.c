@@ -310,18 +310,22 @@ void eva(char* cmd){
 		}
 		if(strcmp(argv[0],"exit") == 0)
 			EXIT();
+			
 		exe(argv);				
 }
-
+int FORK(){
+	pid_t pid = fork();
+	if(pid == -1){
+		fprintf(stderr,"Error when fork : %s\n",strerror(errno));
+		exit(1);
+	}
+	return pid;
+}
 void exe(char **argv){
 		pid_t pid;			 /*new process id*/
 		
-		if((pid = fork()) == -1){
-			fprintf(stderr,"Error when fork : %s\n",strerror(errno));
-			exit(1);
-		}else if(pid == 0){
-			/*in child*/
-			
+		if((pid = FORK()) == 0){			
+			/*in child*/		
 			/*if there is redirection need, direct file reference*/
 			if(checkRedir(argv))
 				directFile();
@@ -332,13 +336,13 @@ void exe(char **argv){
 			buildIn(argv,&build_in);
 				
 			if(!build_in){
+				
 				/*find path of binary file*/
 				char newPath[1028] = "";			
 				findPath(argv[0],newPath);
 				//printf("path is %s\n",newPath );
 			
 					if(newPath[0] != 0){
-				
 						#ifdef d
 							fprintf(stderr,"RUNNING : %s\n",cmd);
 						#endif
@@ -351,12 +355,13 @@ void exe(char **argv){
 						}
 				
 						exit(0);
-				}else{
-				/*path not found*/
-				fprintf(stderr,"%s : command not found\n",argv[0]);
-				exit(0x7f);
-				}
+					}else{
+						/*path not found*/
+						fprintf(stderr,"%s : command not found\n",argv[0]);
+						exit(0x7f);
+					}			
 			}
+
 			exit(0);
 		}else{
 				/*in parent, wait for child to finish*/				
@@ -426,11 +431,10 @@ int checkRedir(char ** argv){
 void redirOut(char **argv, int out,int count){
 	/*direct output of program to fd out*/
 	
-	fd = OPEN(argv[count+1],O_RDWR|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
+	fd = OPEN(argv[count+1],O_RDWR|O_CREAT|O_TRUNC,S_IWUSR|S_IRUSR|S_IXUSR);
 
 	argv[count] = NULL;
-	
-	exe(argv);
+
 
 }
 
@@ -439,12 +443,58 @@ void redirIn(char **argv, int in,int count){
 	fd = OPEN(argv[count+1],O_RDWR|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
 
 	argv[count] = NULL;
-	
-	exe(argv);
+
 }
+void EXECVE(char *path, char* argv[]){
+	#ifdef d
+		fprintf(stderr,"RUNNING : %s\n",cmd);
+	#endif
+	if(debug)
+		fprintf(stderr,"RUNNING : %s\n",cmd);
 
+	//if(execve(newPath,argv,ENVP) < 0){
+	//	printf("Error on executing program %s with error : %s\n",newPath,strerror(errno));
+	//	exit(1);
+	//}
+	
+}
 void redirPipe(char **argv){
-
+	int fd[2];
+	pid_t pid;
+	int i = 3;
+	char *argv1[2] = {"ls",NULL};
+	char *argv2[3] = {"grep","m",NULL};
+	char *argv3[3] = {"grep","y",NULL};
+	int pdi =0;
+	
+	while(i){
+	pipe(fd);
+		if((pid = FORK()) == 0){
+			dup2(pdi,0);
+			if(i == 3){			
+			dup2(fd[1],1);
+			close(fd[0]);
+			execve("/bin/ls",argv1,ENVP);			
+			}else if(i == 2){
+			dup2(fd[1],1);
+			close(fd[0]);
+			execve("/bin/grep",argv2,ENVP);
+			}
+			else{
+			close(fd[1]);	
+			close(fd[0]);
+			execve("/bin/grep",argv3,ENVP);
+			}
+			exit(0);
+		}else{
+			waitpid(-1,&status,0);
+			close(fd[1]);
+			pdi = fd[0];
+			}
+			i--;
+	}
+	exit(0);
+	
 }
 
 int parseInt(char *arg){
@@ -469,7 +519,6 @@ void directFile(){
 		COUNT = 0;
 		OUT = 0;	
 		fd = 0;
-			printf("redi and out is :%d\n",OUT);
 		
 	}else if(direct == '<'){
 		dup2(fd,IN);
@@ -576,7 +625,6 @@ int file_exist (const char *filePath)
 }
 
 void EXIT(){
-	write(1,"PROGRAM EXITING\n",17);
 	historyFile(1);
 	close(fpp);
 	exit(EXIT_SUCCESS);
@@ -777,9 +825,9 @@ void SET(char *cmd[0]){
 
 
 void PWD(){
-	char *pwd = malloc(100);
+	char *pwd = calloc(1,100);
 	getcwd(pwd,100);
-	fprintf(stdout,"%s\n",pwd);
+	write(1,pwd,strlen(pwd));
 	free(pwd);
 }
 
