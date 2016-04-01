@@ -232,36 +232,31 @@ int main (int argc, char ** argv, char **envp) {
         //insert inplace
 
         int temp = position;
+        index ++;
+        int temp2 = index;
         //move everything to the right by 1 unit
-        while(temp<=index){
-          cmd[temp+1] = cmd[temp];
-          temp++;
+        while(temp2>temp){
+          cmd[temp2] = cmd[temp2-1];
+          temp2--;
         }
         //insert the char
-        cmd[position]=last_char;
+        cmd[position]=last_char; 
 
+     
+       	restoreCursor();
+        clearWholeLine(); 
+
+        printPromptDirectory();
+  		write(1, prompt, strlen(prompt));
+		write(1,cmd,index);
+        position = index;
         
-
-        //save cursor location
-        saveCursor();
-
-        temp = position;
-
-          while(position!=0){
-            Left();
-            position --;
-          }
-        clearLine(); 
-
-        position = temp;
-
-        index ++;
-        position++;
-
-        write(1,cmd,index);
-        //restore cursor location
-		restoreCursor();
-        Right();
+        int count = position - temp-1;
+        while(count>0){
+        	Left();
+        	count--;
+        }
+        position = temp +1;
 
         }
 
@@ -537,16 +532,48 @@ int parse(char buf[],char *argv[]){
    char *token;
    char *str;
    int index =0;
+   int firstquote =0;
+   int secondquote =0;
+   int temp=0;
+   char* s;
    /* get the first token */
-  
    token = strtok(buf, s);
      
    /* walk through other tokens */
    while( token != NULL ) 
-   {    
+   {  
+
      argv[index]=token;
      token = strtok(NULL, s);		   
      index++;
+   }
+
+
+   	//check for "" pair
+   while(index2<index){
+   	if(strncmp(argv[index2]," \" ",1)==0){
+   		firstquote=index2;
+   	}
+   	index2++;
+   }
+
+	temp = firstquote;
+   while(firstquote<index){
+   	s = argv[firstquote];	
+   	if(s[strlen(s)-1]==' \" ' ){
+   		secondquote=firstquote;
+   	}
+   	firstquote++;
+   }
+
+   firstquote = temp+1;
+   while(firstquote<secondquote){
+   	strcat(argv[temp],argv[firstquote]);
+   	firstquote++;
+   }
+   
+   if(secondquote>0){
+   	   index = secondquote+1
    }
 
 	//set last index = NUll	
@@ -567,9 +594,6 @@ int parse(char buf[],char *argv[]){
 	}
 	//foreground process
 	return 1;
-
-	
-
 }
 
 void findPath(char *path,char newPath[]){
@@ -624,8 +648,9 @@ int file_exist (const char *filePath)
 }
 
 void EXIT(){
+	
 	historyFile(1);
-	close(fpp);
+	
 	exit(EXIT_SUCCESS);
 }
 
@@ -651,7 +676,17 @@ void buildIn(char* cmd[], int *build_In){
 		/*call echo program*/
 		*build_In = 1;
 		ECHO(cmd);
-	}else if(!strcmp(cmd[0],"help")){		
+	}
+	else if(!strcmp(cmd[0],"history")){		
+		/*call echo program*/
+		*build_In = 1;
+		dumpHistory();
+	}else if(!strcmp(cmd[0],"clear-history")){		
+		/*call echo program*/
+		*build_In = 1;
+		resetHistory();
+	}
+	else if(!strcmp(cmd[0],"help")){		
 		/*call help program*/
 		*build_In = 1;
 		HELP(cmd);
@@ -890,7 +925,8 @@ void historyFile(int mode){
   			 index ++;
    		}
    
-
+   	close(fpp);
+   		
    	//reading to buffer
    }else{
    		temp =(read(fpp, str, 1024));
@@ -909,12 +945,8 @@ void historyFile(int mode){
 		token = strtok(NULL,"\n");
 		index ++;
 			}
-		}
-   	
+		} 	
    		close(fpp);
-   
-   
-
 }
 
 
@@ -993,4 +1025,32 @@ int OPEN(const char* pathname, int flags, mode_t mode){
 	if(result < 0)
 		fprintf(stderr,"Open file: %s with error: %s\n",pathname,strerror(errno));
 	return result;
+}
+
+void dumpHistory(){
+	int i =49;
+	char* temp;
+
+	while(i>0){
+		
+		temp = cmdHistory[i];
+		if(strcmp(temp,"")!=0){
+			
+			write(1," ",1);
+			write(1,temp,strlen(temp));
+			write(1,"\n",1);
+		}
+		
+		i--;
+	}
+}
+
+
+void resetHistory(){
+	char temp[]="History has been clear";
+
+ 	memset(cmdHistory[1],0,1024);
+
+	write(1,temp,strlen(temp));
+	write(1,"\n",1);
 }
