@@ -663,20 +663,21 @@ void directFile(){
 
 int parse(char buf[],char *argv[]){
 
-
   
+
+   int index =0;
+
+
    const char s[1] = " ";
    char *token;
    char *str;
-   int index =0;
-   
-   /*int index2 =0;
+   int index2 =0;
    int firstquote =0;
    int secondquote =0;
    int temp=0;
-   char* merge;
+   char* merge;  
 
-    get the first token */
+ /* get the first token */
    token = strtok(buf, s);
      
    /* walk through other tokens */
@@ -689,8 +690,41 @@ int parse(char buf[],char *argv[]){
    }
 
 
+   	//check for "" pair
+   while(index2<index){
+   		merge = argv[index2];
+	   	if(merge[0]==34){
+	   		firstquote=index2;
+	   		
+	   		while(index2<index){
+					
+					if(index2==firstquote&&strlen(argv[index2])==1){
+						index2++;
+					}
 
-	//set last index = NUll	
+					merge = argv[index2];
+					if(merge[strlen(merge)-1]== 34 ){
+						secondquote = index2;
+					}
+	   				index2++;
+	   			}
+	   		}
+   	index2++;
+   }
+
+
+   temp = firstquote+1;
+   while(temp<=secondquote){
+   	strcat(argv[firstquote],argv[temp]);
+   	temp++;
+   }
+   
+   if(secondquote>0){
+   	   index = secondquote+1;
+   }
+
+
+//set last index = NUll	
 	argv[index] = NULL;
 	
 	//get ride of /n 
@@ -706,6 +740,9 @@ int parse(char buf[],char *argv[]){
 		return 0;
 		}
 	}
+
+
+	
 	//foreground process
 	return 1;
 }
