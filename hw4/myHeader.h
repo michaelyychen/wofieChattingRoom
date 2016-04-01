@@ -7,7 +7,7 @@
 **/
 int parse(char buf[],char *argv[]);
 
-
+void parseRedir(char *argv[]);
 
 /**
 *Helper function to evaluate commnand line
@@ -18,6 +18,7 @@ void eva(char cmd[]);
 
 void exe(char**argv);
 
+void checkPrev(char *symbols[], int symbolCount);
 int FORK();
 /**
 *Helper function to check if command is build in, if yes, handle them

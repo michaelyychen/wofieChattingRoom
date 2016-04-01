@@ -312,6 +312,7 @@ void eva(char* cmd){
 			
 		exe(argv);				
 }
+
 int FORK(){
 	pid_t pid = fork();
 	if(pid == -1){
@@ -457,6 +458,103 @@ void EXECVE(char *path, char* argv[]){
 	//}
 	
 }
+void parseRedir(char *argv[]){
+	char *ptr = argv[0];
+	int ptrr = 0;
+	while(ptr != NULL){
+		fprintf(stderr,"ptr is : %s\n",ptr);
+		ptr = argv[++ptrr];
+	}
+
+	char *argvs[128][128];
+	int argvsCount = 0;
+	char *symbols[128];
+	int symbolCount = 0;
+	char *arg = argv[0];
+	int argStart = 0;
+	int count = 0;
+	char *c;
+	char *files[2];
+	int fileCount = 0;
+	/*search through all argv to find > , < or |, save its arguments respectively */
+
+	while(arg != NULL){
+		c = arg;
+		for(int i = 0;i<strlen(arg);i++){
+			
+			if(*c == '>' || *c == '<' || *c == '|'){	
+				/*check for syntax error*/
+				if(!count || (*c == '|' && (strlen(arg) != 1)) || (*c != '|' && (i != (strlen(arg)-1)))){
+					write(2,"1113\n",5);
+					fprintf(stderr,"i: %d c is :%c\n",i,*c);
+					write(2,"Syntax Error\n",13);
+					exit(0);
+				}
+
+				if(!symbolCount){
+					/*first redirect symbol*/
+					symbols[symbolCount] = c;
+					symbolCount++;				
+				}else{
+					symbols[symbolCount] = c;
+					symbolCount++;
+					/*check if sequence of symbol conflicts*/
+					checkPrev(symbols,symbolCount);				
+				}
+				if(*c == '<' || *c == '>'){
+					files[fileCount++] = argv[++count];
+					printf("%s\n",files[0]);
+				}
+				else{/*valid redirect symbol, save all needed argument*/
+					for(int j=argStart,k=0;j<count;k++,j++,argStart++){
+						printf("%d    %d\n",count,argStart);
+						argvs[argvsCount][k] = argv[argStart];
+						if(j == count -1)
+							argvs[argvsCount][k+1] = NULL;
+					}
+				}	
+				argvsCount = count;
+			}
+			
+			c++;
+		}
+
+		arg = argv[++count];
+		
+	}
+	*argvs[argvsCount] = NULL;
+
+	char **ca = argvs[0];
+	int cc = 0;
+	int rr = 0;
+	char *r = argvs[cc][rr];
+
+	while(*ca != NULL){
+		
+		while(r != NULL){
+			write(1,r,strlen(r));
+			write(1,"\n",1);
+			r = argvs[cc][++rr];
+		}
+		ca = argvs[++cc];
+	}
+		
+}
+void checkPrev(char *symbols[], int symbolCount){
+
+	if(symbolCount != 1 && *symbols[symbolCount-1] == '<'){
+		write(2,"1112\n",5);
+		write(2,"Syntax Error\n",13);
+		exit(0);	
+	}
+	if(symbolCount > 1 && *symbols[symbolCount-2] == '>'){
+		write(2,"1111\n",5);
+		write(2,"Syntax Error\n",13);
+		exit(0);
+	}
+
+}
+
 void redirPipe(char **argv){
 	int fd[2];
 	pid_t pid;
@@ -465,7 +563,8 @@ void redirPipe(char **argv){
 	char *argv2[3] = {"grep","m",NULL};
 	char *argv3[3] = {"grep","y",NULL};
 	int pdi =0;
-	
+	char *argg[10]= {"ls","<","file",">","file2",NULL};
+	parseRedir(argg);
 	while(i){
 	pipe(fd);
 		if((pid = FORK()) == 0){
