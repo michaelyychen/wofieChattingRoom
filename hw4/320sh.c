@@ -469,8 +469,9 @@ void parseRedir(char *argv[]){
 	int argStart = 0;
 	int count = 0;
 	char *c;
-	char *files[2];
-	int fileCount = 0;
+	char *files[2] = {NULL,NULL};
+	int dirIn = 0;
+
 	/*search through all argv to find > , < or |, save its arguments respectively */
 
 	while(arg != NULL){
@@ -496,19 +497,56 @@ void parseRedir(char *argv[]){
 					/*check if sequence of symbol conflicts*/
 					checkPrev(symbols,symbolCount);				
 				}
-				if(*c == '<' || *c == '>'){
-					files[fileCount++] = argv[++count];
-					printf("%s\n",files[0]);
-				}
-				else{/*valid redirect symbol, save all needed argument*/
-					for(int j=argStart,k=0;j<count;k++,j++,argStart++){
-						printf("%d    %d\n",count,argStart);
-						argvs[argvsCount][k] = argv[argStart];
-						if(j == count -1)
-							argvs[argvsCount][k+1] = NULL;
+
+				/*valid redirec symbol, store needed arugment information */
+				if(*c == '<'){
+					dirIn = 1;
+					files[0] = argv[count+1];
+					for(int j=argStart,k=0;j<count;j++,k++){
+						printf("save arg: %s\n",argv[argStart+k]);
+						argvs[argvsCount][k] = argv[argStart+k];
 					}
-				}	
-				argvsCount = count;
+					argStart = count+1;
+					argvsCount++;
+				}
+				if(*c == '<'){
+					if(symbolCount > 1){
+						/*check if prev symbol is < */
+						if(*symbols[symbolCount-2] == '<'){
+							printf("yes\n");
+							files[1] = argv[count+1];
+							printf("%s\n",files[1]);							
+						}else{
+							if(dirIn)
+								files[1] = argv[count+1];
+							else
+								files[0] = argv[count+1];
+							for(int j=argStart,k=0;j<count;j++,k++){
+								printf("save arg: %s\n",argv[argStart+k]);
+								argvs[argvsCount][k] = argv[argStart+k];
+							}
+							argStart = count+1;
+							argvsCount++;
+						}
+					}else{
+						files[0] = argv[count+1];
+						for(int j=argStart,k=0;j<count;j++,k++){
+							printf("save arg: %s\n",argv[argStart+k]);
+							argvs[argvsCount][k] = argv[argStart+k];
+						}
+						argStart = count+1;
+						argvsCount++;
+					}
+				}
+				if(*c == '|'){
+					for(int j=argStart,k=0;j<count;j++,k++){
+						printf("save arg: %s\n",argv[argStart+k]);
+						argvs[argvsCount][k] = argv[argStart+k];
+					}
+					argStart = count+1;
+					argvsCount++;
+				}
+
 			}
 			
 			c++;
