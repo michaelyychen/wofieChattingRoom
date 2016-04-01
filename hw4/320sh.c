@@ -23,11 +23,6 @@ char bb = 0x5B;
 int debug = 0;
 char **ENVP;
 char cmd[MAX_INPUT];
-char direct = 0;
-int IN = 0;
-int OUT = 1;
-int COUNT = 0;
-int fd = 0;
 int fpp;
 int main (int argc, char ** argv, char **envp) {
   
@@ -322,9 +317,7 @@ void exe(char **argv){
 		if((pid = FORK()) == 0){			
 			/*in child*/		
 			/*if there is redirection need, direct file reference*/
-			if(checkRedir(argv))
-				directFile();
-		
+			checkRedir(argv);
 	
 			int build_in = 0;
 			/*check to see if command is buildin, handle them if yes */
@@ -392,26 +385,8 @@ int checkRedir(char ** argv){
 		c = arg;
 		for(int i = 0;i<strlen(arg);i++){
 			
-			if(*c == '>'){	
-			//	printf("OUT\n");
-				if(strlen(arg) > 1)
-					OUT = parseInt(arg);
-				redir = 1;
-				direct = '>';
-				COUNT = count;
-				redirOut(argv,OUT,count);
-				}
-			else if(*c == '<'){
-			//	printf("IN\n");
-				if(strlen(arg) > 1)
-					IN = parseInt(arg);
-				redir = 1;
-				direct = '<';
-				COUNT = count;
-				redirIn(argv,IN,count);
-				}
-			else if(*c == '|'){
-			//	printf("PIPE\n");
+			if(*c == '>' || *c == '<' || *c == '|'){	
+		
 				redir = 1;
 				redirPipe(argv);
 				}
@@ -423,37 +398,22 @@ int checkRedir(char ** argv){
 	return redir;
 }
 
-void redirOut(char **argv, int out,int count){
-	/*direct output of program to fd out*/
-	
-	fd = OPEN(argv[count+1],O_RDWR|O_CREAT|O_TRUNC,S_IWUSR|S_IRUSR|S_IXUSR);
 
-	argv[count] = NULL;
-
-
-}
-
-void redirIn(char **argv, int in,int count){
-
-	fd = OPEN(argv[count+1],O_RDWR|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
-
-	argv[count] = NULL;
-
-}
 void EXECVE(char *path, char* argv[]){
 	#ifdef d
 		fprintf(stderr,"RUNNING : %s\n",cmd);
 	#endif
 	if(debug)
 		fprintf(stderr,"RUNNING : %s\n",cmd);
-
-	//if(execve(newPath,argv,ENVP) < 0){
-	//	printf("Error on executing program %s with error : %s\n",newPath,strerror(errno));
-	//	exit(1);
-	//}
+	char newPath[1028] = "";			
+	findPath(path,newPath);
+	if(execve(newPath,argv,ENVP) < 0){
+		printf("Error on executing program %s with error : %s\n",newPath,strerror(errno));
+		exit(1);
+	}
 	
 }
-void parseRedir(char *argv[]){
+void parseRedir(char *argv[],char *argvs[128][128], char *symbols[128], char *files[2],int fdCO[2] ) {
 	char *ptr = argv[0];
 	int ptrr = 0;
 	while(ptr != NULL){
@@ -461,17 +421,14 @@ void parseRedir(char *argv[]){
 		ptr = argv[++ptrr];
 	}
 
-	char *argvs[128][128];
 	int argvsCount = 0;
-	char *symbols[128];
 	int symbolCount = 0;
 	char *arg = argv[0];
 	int argStart = 0;
 	int count = 0;
 	char *c;
-	char *files[2] = {NULL,NULL};
 	int dirIn = 0;
-
+	int fdCOC = 0;
 	/*search through all argv to find > , < or |, save its arguments respectively */
 
 	while(arg != NULL){
@@ -481,8 +438,10 @@ void parseRedir(char *argv[]){
 			if(*c == '>' || *c == '<' || *c == '|'){	
 				/*check for syntax error*/
 				if(!count || (*c == '|' && (strlen(arg) != 1)) || (*c != '|' && (i != (strlen(arg)-1)))){
-					write(2,"1113\n",5);
-					fprintf(stderr,"i: %d c is :%c\n",i,*c);
+					write(2,"Syntax Error\n",13);
+					exit(0);
+				}
+				if(argv[count + 1] == NULL){
 					write(2,"Syntax Error\n",13);
 					exit(0);
 				}
@@ -500,16 +459,26 @@ void parseRedir(char *argv[]){
 
 				/*valid redirec symbol, store needed arugment information */
 				if(*c == '<'){
+					if(strlen(arg)>1){
+						fdCO[fdCOC] = parseInt(arg);
+						fdCOC++;
+					}
 					dirIn = 1;
 					files[0] = argv[count+1];
 					for(int j=argStart,k=0;j<count;j++,k++){
 						printf("save arg: %s\n",argv[argStart+k]);
 						argvs[argvsCount][k] = argv[argStart+k];
+						if(j == (count-1))
+							argvs[argvsCount][k+1] = NULL;
 					}
 					argStart = count+1;
 					argvsCount++;
 				}
-				if(*c == '<'){
+				if(*c == '>'){
+					if(strlen(arg)>1){
+						fdCO[fdCOC] = parseInt(arg);
+						fdCOC++;
+					}
 					if(symbolCount > 1){
 						/*check if prev symbol is < */
 						if(*symbols[symbolCount-2] == '<'){
@@ -524,27 +493,38 @@ void parseRedir(char *argv[]){
 							for(int j=argStart,k=0;j<count;j++,k++){
 								printf("save arg: %s\n",argv[argStart+k]);
 								argvs[argvsCount][k] = argv[argStart+k];
+								if(j == (count-1))
+									argvs[argvsCount][k+1] = NULL;
 							}
 							argStart = count+1;
 							argvsCount++;
 						}
 					}else{
+						printf("symbol count %d\n",symbolCount);
 						files[0] = argv[count+1];
 						for(int j=argStart,k=0;j<count;j++,k++){
 							printf("save arg: %s\n",argv[argStart+k]);
 							argvs[argvsCount][k] = argv[argStart+k];
+							if(j == (count-1))
+								argvs[argvsCount][k+1] = NULL;
 						}
 						argStart = count+1;
 						argvsCount++;
 					}
 				}
 				if(*c == '|'){
-					for(int j=argStart,k=0;j<count;j++,k++){
-						printf("save arg: %s\n",argv[argStart+k]);
-						argvs[argvsCount][k] = argv[argStart+k];
+					if(dirIn){
+						argStart = count + 1;
+					}else{
+						for(int j=argStart,k=0;j<count;j++,k++){
+							printf("save arg: %s\n",argv[argStart+k]);
+							argvs[argvsCount][k] = argv[argStart+k];
+							if(j == (count-1))
+								argvs[argvsCount][k+1] = NULL;
+						}
+						argStart = count+1;
+						argvsCount++;
 					}
-					argStart = count+1;
-					argvsCount++;
 				}
 
 			}
@@ -555,33 +535,50 @@ void parseRedir(char *argv[]){
 		arg = argv[++count];
 		
 	}
+	if(*symbols[symbolCount-1] == '|'){
+		for(int j=argStart,k=0;j<count;j++,k++){
+			printf("save arg: %s\n",argv[argStart+k]);
+			argvs[argvsCount][k] = argv[argStart+k];
+			if(j == (count-1))
+				argvs[argvsCount][k+1] = NULL;
+		}
+		argStart = count+1;
+		argvsCount++;
+	}
+	symbols[symbolCount] = NULL;
+	printf("argCount : %d\n",argvsCount);
 	*argvs[argvsCount] = NULL;
 
 	char **ca = argvs[0];
 	int cc = 0;
 	int rr = 0;
 	char *r = argvs[cc][rr];
-
+	printf("%s\n",files[0]);
+	
+	for(int jj = 0;jj<symbolCount;jj++){
+		printf("%s\n",symbols[jj]);
+	}
 	while(*ca != NULL){
-		
+		rr =0;
 		while(r != NULL){
 			write(1,r,strlen(r));
 			write(1,"\n",1);
 			r = argvs[cc][++rr];
 		}
 		ca = argvs[++cc];
+		r = argvs[cc][0];
 	}
 		
 }
 void checkPrev(char *symbols[], int symbolCount){
 
 	if(symbolCount != 1 && *symbols[symbolCount-1] == '<'){
-		write(2,"1112\n",5);
+
 		write(2,"Syntax Error\n",13);
 		exit(0);	
 	}
 	if(symbolCount > 1 && *symbols[symbolCount-2] == '>'){
-		write(2,"1111\n",5);
+
 		write(2,"Syntax Error\n",13);
 		exit(0);
 	}
@@ -591,41 +588,68 @@ void checkPrev(char *symbols[], int symbolCount){
 void redirPipe(char **argv){
 	int fd[2];
 	pid_t pid;
-	int i = 3;
-	char *argv1[2] = {"ls",NULL};
-	char *argv2[3] = {"grep","m",NULL};
-	char *argv3[3] = {"grep","y",NULL};
-	int pdi =0;
-	char *argg[10]= {"ls","<","file",">","file2",NULL};
-	parseRedir(argg);
-	while(i){
-	pipe(fd);
-		if((pid = FORK()) == 0){
-			dup2(pdi,0);
-			if(i == 3){			
-			dup2(fd[1],1);
-			close(fd[0]);
-			execve("/bin/ls",argv1,ENVP);			
-			}else if(i == 2){
-			dup2(fd[1],1);
-			close(fd[0]);
-			execve("/bin/grep",argv2,ENVP);
-			}
-			else{
-			close(fd[1]);	
-			close(fd[0]);
-			execve("/bin/grep",argv3,ENVP);
-			}
-			exit(0);
-		}else{
-			waitpid(-1,&status,0);
-			close(fd[1]);
-			pdi = fd[0];
-			}
-			i--;
-	}
-	exit(0);
+	int fdi =0;
 	
+	/*need info*/
+	char *argvs[128][128];
+	char *symbols[128];
+	int fdCo[2] = {-1,-1};
+	char *files[2] = {NULL,NULL};
+
+	parseRedir(argv,argvs,symbols,files,fdCo);
+
+	int argvsC = 0;
+	int symC = 0;
+	int fileC = 0;
+
+
+	while(argvs[argvsC] != NULL){
+		if(*symbols[symC] == '<'){
+			if(fdCo[fileC] == -1){
+				fdCo[fileC] = 0;
+			}
+			directFile(0,files[fileC],fdCo[fileC]);
+			fileC++;
+			symC++;
+			if(symbols[symC] == NULL){
+				//printf("symC: %d, arg is %s\n",symC,argvs[argvsC][0]);
+				EXECVE(argvs[argvsC][0],argvs[argvsC]);		
+			}else{
+
+			}
+		}else if(*symbols[symC] == '>'){
+
+			if(fdCo[fileC] == -1){
+				fdCo[fileC] = 1;
+			}
+			directFile(1,files[fileC],fdCo[fileC]);
+			fileC++;
+			symC++;
+			EXECVE(argvs[argvsC][0],argvs[argvsC]);		
+
+		}else{
+			pipe(fd);
+			if((pid = FORK()) == 0){
+				dup2(fdi,0);
+				if(argvs[argvsC+1] != NULL){
+				dup2(fd[1],1);
+				close(fd[0]);
+				EXECVE(argvs[argvsC][0],argvs[argvsC]);			
+				}else{
+					close(fd[0]);
+					close(fd[1]);
+					EXECVE(argvs[argvsC][0],argvs[argvsC]);
+				}
+				exit(0);
+			}else{
+				waitpid(-1,&status,0);
+				close(fd[1]);
+				fdi = fd[0];
+				argvsC++;
+				}	
+			}		
+	}
+	exit(0);	
 }
 
 int parseInt(char *arg){
@@ -641,22 +665,28 @@ int parseInt(char *arg){
 	return value;
 }
 
-void directFile(){
+void directFile(int i, char *file,int newfd){
 /*for now, assume file name is follow by > or < sign */
-	if(direct == '>'){
-	
-		dup2(fd,OUT);
-		direct = 0;
-		COUNT = 0;
-		OUT = 0;	
-		fd = 0;
+	int fd;
+	if(i){
 		
-	}else if(direct == '<'){
-		dup2(fd,IN);
-		COUNT = 0;
-		IN = 0;
-		direct = 0;
-		fd = 0;
+		fd = OPEN(file,O_RDWR|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
+		if(fd>0)
+		dup2(fd,newfd);
+		else{
+			fprintf(stderr,"error opening file:%s\n",file);
+			exit(1);
+		}
+		
+	}else{
+		fd = OPEN(file,O_RDWR|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
+		if(fd>0)
+		dup2(fd,newfd);
+		else{
+			fprintf(stderr,"error opening file:%s\n",file);
+			exit(1);
+		}
+	
 	}		
 }
 	

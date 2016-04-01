@@ -7,7 +7,7 @@
 **/
 int parse(char buf[],char *argv[]);
 
-void parseRedir(char *argv[]);
+void parseRedir(char *argv[],char *argvs[128][128],char *symbols[128],char *files[2],int fdCO[2]);
 
 /**
 *Helper function to evaluate commnand line
@@ -130,17 +130,7 @@ int parseInt(char *arg);
 **/
 int checkRedir(char **argv);
 
-/**helper to handle redirection >
-*@param argv
-*@param out
-**/
-void redirOut(char **argv, int out,int count);
 
-/**helper to handle redirection <
-*@param argv
-*@param in
-**/
-void redirIn(char **argv, int in,int count);
 
 /**helper to handle redirection |
 *@param argv
@@ -150,7 +140,7 @@ void redirPipe(char **argv);
 /*Wrapper for open*/
 int OPEN(const char* pathname, int flags, mode_t mode);
 
-void directFile();
+void directFile(int i,char *file, int newfd);
 
 void EXIT();
 
