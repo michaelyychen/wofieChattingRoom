@@ -631,11 +631,14 @@ int parse(char buf[],char *argv[]){
    char *token;
    char *str;
    int index =0;
+   
+   /*int index2 =0;
    int firstquote =0;
    int secondquote =0;
    int temp=0;
-   char* s;
-   /* get the first token */
+   char* merge;
+
+    get the first token */
    token = strtok(buf, s);
      
    /* walk through other tokens */
@@ -648,32 +651,6 @@ int parse(char buf[],char *argv[]){
    }
 
 
-   	//check for "" pair
-   while(index2<index){
-   	if(strncmp(argv[index2]," \" ",1)==0){
-   		firstquote=index2;
-   	}
-   	index2++;
-   }
-
-	temp = firstquote;
-   while(firstquote<index){
-   	s = argv[firstquote];	
-   	if(s[strlen(s)-1]==' \" ' ){
-   		secondquote=firstquote;
-   	}
-   	firstquote++;
-   }
-
-   firstquote = temp+1;
-   while(firstquote<secondquote){
-   	strcat(argv[temp],argv[firstquote]);
-   	firstquote++;
-   }
-   
-   if(secondquote>0){
-   	   index = secondquote+1
-   }
 
 	//set last index = NUll	
 	argv[index] = NULL;
