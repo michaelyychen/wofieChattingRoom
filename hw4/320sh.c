@@ -26,6 +26,9 @@ int debug = 0;
 char **ENVP;
 char cmd[MAX_INPUT];
 int fpp;
+
+
+
 int main (int argc, char ** argv, char **envp) {
   
   ENVP = envp;
@@ -40,7 +43,7 @@ int main (int argc, char ** argv, char **envp) {
 			debug = 1;
 	}
 
-  splitPath(tokens);
+  splitPath();
 
   
   strcat(historyLocation ,getenv("HOME"));
@@ -304,12 +307,17 @@ void eva(char* cmd){
 
 			return;
 		}
+
 		if(strcmp(argv[0],"clear-history") == 0)
 			resetHistory();
-		if(strcmp(argv[0],"exit") == 0)
+		else if(strcmp(argv[0],"exit") == 0)
 			EXIT();
-			
-		exe(argv);				
+		else if(strcmp(argv[0],"set") == 0)
+			SET(argv);
+		else if(strcmp(argv[0],"cd") == 0)
+			CD(argv);
+		else
+			exe(argv);				
 }
 
 int FORK(){
@@ -323,7 +331,7 @@ int FORK(){
 void exe(char **argv){
 		pid_t pid;			 /*new process id*/
 		
-		if((pid = FORK()) == 0){			
+		if((pid = fork()) == 0){			
 			/*in child*/		
 			/*if there is redirection need, direct file reference*/
 			checkRedir(argv);
@@ -419,16 +427,10 @@ void EXECVE(char *path, char* argv[]){
 	if(execve(newPath,argv,ENVP) < 0){
 		printf("Error on executing program %s with error : %s\n",newPath,strerror(errno));
 		exit(1);
-	}
-	
+	}else
+	exit(0);
 }
 void parseRedir(char *argv[],char *argvs[128][128], char *symbols[128], char *files[2],int fdCO[2] ) {
-	char *ptr = argv[0];
-	int ptrr = 0;
-	while(ptr != NULL){
-		fprintf(stderr,"ptr is : %s\n",ptr);
-		ptr = argv[++ptrr];
-	}
 
 	int argvsCount = 0;
 	int symbolCount = 0;
@@ -448,11 +450,11 @@ void parseRedir(char *argv[],char *argvs[128][128], char *symbols[128], char *fi
 				/*check for syntax error*/
 				if(!count || (*c == '|' && (strlen(arg) != 1)) || (*c != '|' && (i != (strlen(arg)-1)))){
 					write(2,"Syntax Error\n",13);
-					exit(0);
+					exit(1);
 				}
 				if(argv[count + 1] == NULL){
 					write(2,"Syntax Error\n",13);
-					exit(0);
+					exit(1);
 				}
 
 				if(!symbolCount){
@@ -558,47 +560,24 @@ void parseRedir(char *argv[],char *argvs[128][128], char *symbols[128], char *fi
 	printf("argCount : %d\n",argvsCount);
 	*argvs[argvsCount] = NULL;
 
-	char **ca = argvs[0];
-	int cc = 0;
-	int rr = 0;
-	char *r = argvs[cc][rr];
-	printf("%s\n",files[0]);
-	
-	for(int jj = 0;jj<symbolCount;jj++){
-		printf("%s\n",symbols[jj]);
-	}
-	while(*ca != NULL){
-		rr =0;
-		while(r != NULL){
-			write(1,r,strlen(r));
-			write(1,"\n",1);
-			r = argvs[cc][++rr];
-		}
-		ca = argvs[++cc];
-		r = argvs[cc][0];
-	}
-		
 }
 void checkPrev(char *symbols[], int symbolCount){
 
 	if(symbolCount != 1 && *symbols[symbolCount-1] == '<'){
 
 		write(2,"Syntax Error\n",13);
-		exit(0);	
+		exit(1);	
 	}
 	if(symbolCount > 1 && *symbols[symbolCount-2] == '>'){
 
 		write(2,"Syntax Error\n",13);
-		exit(0);
+		exit(1);
 	}
 
 }
 
 void redirPipe(char **argv){
-	int fd[2];
-	pid_t pid;
-	int fdi =0;
-	
+
 	/*need info*/
 	char *argvs[128][128];
 	char *symbols[128];
@@ -611,8 +590,8 @@ void redirPipe(char **argv){
 	int symC = 0;
 	int fileC = 0;
 
-
-	while(argvs[argvsC] != NULL){
+	while(*argvs[argvsC] != NULL){
+		printf("argvsC = %d\n",argvsC);
 		if(*symbols[symC] == '<'){
 			if(fdCo[fileC] == -1){
 				fdCo[fileC] = 0;
@@ -622,7 +601,8 @@ void redirPipe(char **argv){
 			symC++;
 			if(symbols[symC] == NULL){
 				//printf("symC: %d, arg is %s\n",symC,argvs[argvsC][0]);
-				EXECVE(argvs[argvsC][0],argvs[argvsC]);		
+				EXECVE(argvs[argvsC][0],argvs[argvsC]);	
+				
 			}else{
 
 			}
@@ -634,31 +614,57 @@ void redirPipe(char **argv){
 			directFile(1,files[fileC],fdCo[fileC]);
 			fileC++;
 			symC++;
-			EXECVE(argvs[argvsC][0],argvs[argvsC]);		
+			EXECVE(argvs[argvsC][0],argvs[argvsC]);	
+		
 
 		}else{
-			pipe(fd);
-			if((pid = FORK()) == 0){
-				dup2(fdi,0);
-				if(argvs[argvsC+1] != NULL){
-				dup2(fd[1],1);
-				close(fd[0]);
-				EXECVE(argvs[argvsC][0],argvs[argvsC]);			
-				}else{
-					close(fd[0]);
-					close(fd[1]);
-					EXECVE(argvs[argvsC][0],argvs[argvsC]);
+			/*handle all the piping in a row*/		
+			int fd[2];
+			pid_t pid;
+			int fdi =0;
+			while(*argvs[argvsC] != NULL){
+				
+				pipe(fd);
+				if((pid = fork()) == 0){		
+					dup2(fdi,0);
+
+					if(*argvs[argvsC+1] != NULL){	
+						dup2(fd[1],1);
+						close(fd[0]);
+						
+						EXECVE(argvs[argvsC][0],argvs[argvsC]);
+					}else{
+						
+						if(symbols[symC] != NULL){
+							if(*symbols[symC] == '>'){
+
+								if(fdCo[fileC] == -1){
+								fdCo[fileC] = 1;
+								}
+	
+								directFile(1,files[fileC],fdCo[fileC]);
+							}
+						}
+
+						close(fd[0]);
+					
+						EXECVE(argvs[argvsC][0],argvs[argvsC]);
+					}
+				
 				}
-				exit(0);
-			}else{
-				waitpid(-1,&status,0);
-				close(fd[1]);
-				fdi = fd[0];
-				argvsC++;
+				else{
+					waitpid(-1,&status,0);
+					close(fd[1]);
+					fdi = fd[0];
+					symC++;
+					argvsC++;
+					}
+
 				}	
-			}		
+			}	
+
 	}
-	exit(0);	
+	exit(status);	
 }
 
 int parseInt(char *arg){
@@ -679,7 +685,7 @@ void directFile(int i, char *file,int newfd){
 	int fd;
 	if(i){
 		
-		fd = OPEN(file,O_RDWR|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
+		fd = OPEN(file,O_RDWR|O_TRUNC|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
 		if(fd>0)
 		dup2(fd,newfd);
 		else{
@@ -703,8 +709,6 @@ void directFile(int i, char *file,int newfd){
 int parse(char buf[],char *argv[]){
 
    int index =0;
-
-
    const char s[1] = " ";
    char *token;
    char *str;
@@ -742,8 +746,6 @@ int parse(char buf[],char *argv[]){
 		}
 	}
 
-
-
 	//foreground process
 	return 1;
 }
@@ -770,9 +772,13 @@ void findPath(char *path,char newPath[]){
   else{
 
 		int i=0;
+		
+
+
+		splitPath();
+
 		while(tokens[i]!=NULL){
-		
-		
+				
 		strcpy(fullPath,tokens[i]);
 		strcat(fullPath,"/");
 		strcat(fullPath,path);
@@ -789,7 +795,6 @@ void findPath(char *path,char newPath[]){
 			*newPath = 0;
 			}
 	}
-
 	
 }
 
@@ -858,7 +863,6 @@ void buildIn(char* cmd[], int *build_In){
 	}
 }
 
-
 void CD(char *cmd[0]){
 	char *pwd = malloc(100);
 	char temp[100];
@@ -874,8 +878,6 @@ void CD(char *cmd[0]){
 		if(chdir(temp)<0){
 			printf("error: %s\n", strerror(errno));
 		}
-
-
 
 	}else if(strcmp(cmd[1],"..")==0){
 		strcpy(lastLocation,pwd);	
@@ -909,7 +911,6 @@ void CD(char *cmd[0]){
       printf("error: %s\n", strerror(errno));
     }
 
-
   }else{
 
 		strcpy(lastLocation,pwd);	
@@ -919,8 +920,6 @@ void CD(char *cmd[0]){
 		if(chdir(pwd)<0){
 			printf("error: %s\n", strerror(errno));
 		}
-
-
 
 	}
 	free(pwd);
@@ -1027,10 +1026,11 @@ void PWD(){
 	char *pwd = calloc(1,100);
 	getcwd(pwd,100);
 	write(1,pwd,strlen(pwd));
+	write(1,"\n",1);
 	free(pwd);
 }
 
-void splitPath(char *cmd[]){
+void splitPath(){
 	char path2[2014];
 	char *token;
 
