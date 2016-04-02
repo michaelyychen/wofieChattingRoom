@@ -301,7 +301,7 @@ void eva(char* cmd){
 		/*parse command line*/
 		job = parse(buf,copy,argv);
 
-		printf("job = %d\n",job);
+		
 		  
 		/*check if command if empty*/
 		if(argv[0] == NULL || job==-1){
