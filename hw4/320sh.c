@@ -477,7 +477,7 @@ void parseRedir(char *argv[],char *argvs[128][128], char *symbols[128], char *fi
 					dirIn = 1;
 					files[0] = argv[count+1];
 					for(int j=argStart,k=0;j<count;j++,k++){
-						printf("save arg: %s\n",argv[argStart+k]);
+						
 						argvs[argvsCount][k] = argv[argStart+k];
 						if(j == (count-1))
 							argvs[argvsCount][k+1] = NULL;
@@ -493,16 +493,16 @@ void parseRedir(char *argv[],char *argvs[128][128], char *symbols[128], char *fi
 					if(symbolCount > 1){
 						/*check if prev symbol is < */
 						if(*symbols[symbolCount-2] == '<'){
-							printf("yes\n");
+						
 							files[1] = argv[count+1];
-							printf("%s\n",files[1]);							
+													
 						}else{
 							if(dirIn)
 								files[1] = argv[count+1];
 							else
 								files[0] = argv[count+1];
 							for(int j=argStart,k=0;j<count;j++,k++){
-								printf("save arg: %s\n",argv[argStart+k]);
+								
 								argvs[argvsCount][k] = argv[argStart+k];
 								if(j == (count-1))
 									argvs[argvsCount][k+1] = NULL;
@@ -511,10 +511,10 @@ void parseRedir(char *argv[],char *argvs[128][128], char *symbols[128], char *fi
 							argvsCount++;
 						}
 					}else{
-						printf("symbol count %d\n",symbolCount);
+						
 						files[0] = argv[count+1];
 						for(int j=argStart,k=0;j<count;j++,k++){
-							printf("save arg: %s\n",argv[argStart+k]);
+							
 							argvs[argvsCount][k] = argv[argStart+k];
 							if(j == (count-1))
 								argvs[argvsCount][k+1] = NULL;
@@ -528,7 +528,7 @@ void parseRedir(char *argv[],char *argvs[128][128], char *symbols[128], char *fi
 						argStart = count + 1;
 					}else{
 						for(int j=argStart,k=0;j<count;j++,k++){
-							printf("save arg: %s\n",argv[argStart+k]);
+							
 							argvs[argvsCount][k] = argv[argStart+k];
 							if(j == (count-1))
 								argvs[argvsCount][k+1] = NULL;
@@ -547,8 +547,7 @@ void parseRedir(char *argv[],char *argvs[128][128], char *symbols[128], char *fi
 		
 	}
 	if(*symbols[symbolCount-1] == '|'){
-		for(int j=argStart,k=0;j<count;j++,k++){
-			printf("save arg: %s\n",argv[argStart+k]);
+		for(int j=argStart,k=0;j<count;j++,k++){			
 			argvs[argvsCount][k] = argv[argStart+k];
 			if(j == (count-1))
 				argvs[argvsCount][k+1] = NULL;
@@ -557,7 +556,7 @@ void parseRedir(char *argv[],char *argvs[128][128], char *symbols[128], char *fi
 		argvsCount++;
 	}
 	symbols[symbolCount] = NULL;
-	printf("argCount : %d\n",argvsCount);
+	
 	*argvs[argvsCount] = NULL;
 
 }
@@ -591,7 +590,7 @@ void redirPipe(char **argv){
 	int fileC = 0;
 
 	while(*argvs[argvsC] != NULL){
-		printf("argvsC = %d\n",argvsC);
+		
 		if(*symbols[symC] == '<'){
 			if(fdCo[fileC] == -1){
 				fdCo[fileC] = 0;
