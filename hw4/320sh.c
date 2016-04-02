@@ -28,7 +28,6 @@ char **ENVP;
 char cmd[MAX_INPUT];
 int fpp;
 
-
 int main (int argc, char ** argv, char **envp) {
   
   ENVP = envp;
@@ -269,8 +268,8 @@ int main (int argc, char ** argv, char **envp) {
    
     saveHistory(cmd);
 
-   
 	eva(cmd);
+
     memset(&cmd,0,1024);
 
 
@@ -294,25 +293,23 @@ void eva(char* cmd){
 		char buf[MAX_INPUT]; /*Copy of command line*/
 		char copy[MAX_INPUT]; /*Copy of command line*/
 		int job;			 /*hold job type, background if 0, foreground otherwise*/
-			
+		
+		memset(buf,0,sizeof(buf));
+		memset(copy,0,sizeof(copy));	
 		strcpy(buf, cmd);
 		strcpy(copy, cmd);
 
 		/*parse command line*/
 		job = parse(buf,copy,argv);
 
-		
-		  
 		/*check if command if empty*/
+		if(argv[0] == NULL || job==-1){
 
-		if(argv[0] == NULL||job==-1)
-			return;	
-		else if(strcmp(argv[0],"clear-history") == 0)
-
-			resetHistory();
-		else if(strcmp(argv[0],"history") == 0){
-			dumpHistory();
+			return;
 		}
+
+		if(strcmp(argv[0],"clear-history") == 0)
+			resetHistory();
 		else if(strcmp(argv[0],"exit") == 0)
 			EXIT();
 		else if(strcmp(argv[0],"set") == 0)
@@ -390,7 +387,7 @@ void exe(char **argv, int job){
 					}
 				}else{
 					/*background job*/
-
+					printf("job %s is running in background\n",cmd);
 				}
 			}	
 }
@@ -919,7 +916,11 @@ void buildIn(char* cmd[], int *build_In){
 		*build_In = 1;
 		ECHO(cmd);
 	}
-	else if(!strcmp(cmd[0],"jobs")){		
+	else if(!strcmp(cmd[0],"history")){		
+		/*call echo program*/
+		*build_In = 1;
+		dumpHistory();
+	}else if(!strcmp(cmd[0],"jobs")){		
 		/*call pwd program*/
 		*build_In = 1;
 		jobs();
@@ -1293,7 +1294,7 @@ void dumpHistory(){
 void resetHistory(){
 	char temp[]="History has been clear";
 
- 	memset(cmdHistory,0,sizeof(cmdHistory));
+ 	memset(cmdHistory[1],0,1024);
 
 	write(1,temp,strlen(temp));
 	write(1,"\n",1);
