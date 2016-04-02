@@ -321,14 +321,7 @@ void eva(char* cmd){
 			exe(argv);				
 }
 
-int FORK(){
-	pid_t pid = fork();
-	if(pid == -1){
-		fprintf(stderr,"Error when fork : %s\n",strerror(errno));
-		exit(1);
-	}
-	return pid;
-}
+
 void exe(char **argv){
 		pid_t pid;			 /*new process id*/
 		
