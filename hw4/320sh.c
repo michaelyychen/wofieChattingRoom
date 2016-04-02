@@ -770,10 +770,11 @@ int parse(char buf[],char copy[],char *argv[]){
 
    }
 
-	if(firstquote>=0&&secondquote>=0){
+	if(firstquote>-1&&secondquote>-1){
 		while(copy[i]!=0){
 	   	if(copy[i]==34){
 	   		i++;
+	   		memset(temp,0,sizeof(temp));
 	   		while(copy[i]!=34){
 
 	   			temp[j]=copy[i];
@@ -799,10 +800,7 @@ int parse(char buf[],char copy[],char *argv[]){
 
 		   index = index - difference;	
 		   i =0;
-		 while(i<index){
-		 	printf("%d, %s\n",i,argv[i] );
-		 	i++;
-		 }  
+		
 	}
    
 
