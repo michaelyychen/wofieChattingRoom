@@ -304,13 +304,15 @@ void eva(char* cmd){
 		
 		  
 		/*check if command if empty*/
-		if(argv[0] == NULL || job==-1){
 
-			return;
-		}
+		if(argv[0] == NULL||job==-1)
+			return;	
+		else if(strcmp(argv[0],"clear-history") == 0)
 
-		if(strcmp(argv[0],"clear-history") == 0)
 			resetHistory();
+		else if(strcmp(argv[0],"history") == 0){
+			dumpHistory();
+		}
 		else if(strcmp(argv[0],"exit") == 0)
 			EXIT();
 		else if(strcmp(argv[0],"set") == 0)
@@ -917,11 +919,7 @@ void buildIn(char* cmd[], int *build_In){
 		*build_In = 1;
 		ECHO(cmd);
 	}
-	else if(!strcmp(cmd[0],"history")){		
-		/*call echo program*/
-		*build_In = 1;
-		dumpHistory();
-	}else if(!strcmp(cmd[0],"jobs")){		
+	else if(!strcmp(cmd[0],"jobs")){		
 		/*call pwd program*/
 		*build_In = 1;
 		jobs();
@@ -1295,7 +1293,7 @@ void dumpHistory(){
 void resetHistory(){
 	char temp[]="History has been clear";
 
- 	memset(cmdHistory[1],0,1024);
+ 	memset(cmdHistory,0,sizeof(cmdHistory));
 
 	write(1,temp,strlen(temp));
 	write(1,"\n",1);
