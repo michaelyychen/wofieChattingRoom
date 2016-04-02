@@ -16,7 +16,7 @@ void parseRedir(char *argv[],char *argvs[128][128],char *symbols[128],char *file
 **/
 void eva(char cmd[]);
 
-void exe(char**argv);
+void exe(char**argv, int job);
 
 void checkPrev(char *symbols[], int symbolCount);
 int FORK();
@@ -35,8 +35,7 @@ void buildIn(char *cmd[], int *build_In);
 */
 void findPath(char *file,char newFile[]);
 
-/**
-*Helper function using stat to check if file exist
+/**Helper function using stat to check if file exist
 *@param const char *filePath: file to check 
 *return true upon success, false otherwise
 **/

@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <signal.h>
 #include "myHeader.h"
 // Assume no input line will be longer than 1024 bytes
 #define MAX_INPUT 1024
@@ -26,7 +27,6 @@ int debug = 0;
 char **ENVP;
 char cmd[MAX_INPUT];
 int fpp;
-
 
 
 int main (int argc, char ** argv, char **envp) {
@@ -301,12 +301,14 @@ void eva(char* cmd){
 		/*parse command line*/
 		job = parse(buf,copy,argv);
 
-		printf("job = %d\n",job);
+		
 		  
 		/*check if command if empty*/
+
 		if(argv[0] == NULL||job==-1)
 			return;	
 		else if(strcmp(argv[0],"clear-history") == 0)
+
 			resetHistory();
 		else if(strcmp(argv[0],"history") == 0){
 			dumpHistory();
@@ -318,14 +320,15 @@ void eva(char* cmd){
 		else if(strcmp(argv[0],"cd") == 0)
 			CD(argv);
 		else
-			exe(argv);				
+			exe(argv, job);				
 }
 
 
-void exe(char **argv){
+void exe(char **argv, int job){
 		pid_t pid;			 /*new process id*/
 		
-		if((pid = fork()) == 0){			
+		if((pid = fork()) == 0){	
+			
 			/*in child*/		
 			/*if there is redirection need, direct file reference*/
 			checkRedir(argv);
@@ -333,7 +336,13 @@ void exe(char **argv){
 			int build_in = 0;
 			/*check to see if command is buildin, handle them if yes */
 			buildIn(argv,&build_in);
-				
+
+			#ifdef d
+				fprintf(stderr,"RUNNING : %s\n",cmd);
+			#endif
+			if(debug)
+				fprintf(stderr,"RUNNING : %s\n",cmd);
+
 			if(!build_in){
 				
 				/*find path of binary file*/
@@ -342,12 +351,7 @@ void exe(char **argv){
 				//printf("path is %s\n",newPath );
 			
 					if(newPath[0] != 0){
-						#ifdef d
-							fprintf(stderr,"RUNNING : %s\n",cmd);
-						#endif
-						if(debug)
-							fprintf(stderr,"RUNNING : %s\n",cmd);
-
+					
 						if(execve(newPath,argv,ENVP) < 0){
 							printf("Error on executing program %s with error : %s\n",newPath,strerror(errno));
 							exit(1);
@@ -363,24 +367,30 @@ void exe(char **argv){
 
 			exit(0);
 		}else{
-				/*in parent, wait for child to finish*/				
-				if(waitpid(-1,&status,0) >= 0){
-				/*child successfully reap*/
-					if(WIFEXITED(status)){
-					/*child terminate correctly*/
-						#ifdef d
-							fprintf(stderr,"ENDED : %s (ret:%d)\n",cmd,WEXITSTATUS(status));
-						#endif
-						if(debug)
-							fprintf(stderr,"ENDED : %s (ret:%d)\n",cmd,WEXITSTATUS(status));
+				/*foreground job */
+				if(job == 1){
+					/*in parent, wait for child to finish*/				
+					if(waitpid(-1,&status,0) >= 0){
+					/*child successfully reap*/
+						if(WIFEXITED(status)){
+						/*child terminate correctly*/
+							#ifdef d
+								fprintf(stderr,"ENDED : %s (ret:%d)\n",cmd,WEXITSTATUS(status));
+							#endif
+							if(debug)
+								fprintf(stderr,"ENDED : %s (ret:%d)\n",cmd,WEXITSTATUS(status));
+								return;
+						}else{
+						/*something wrong when child terminate*/
+							fprintf(stderr,"Child terminated abnormally with error:%s\n",strerror(errno));
 							return;
+						}
 					}else{
-					/*something wrong when child terminate*/
-						fprintf(stderr,"Child terminated abnormally with error:%s\n",strerror(errno));
-						return;
+						fprintf(stderr,"ERROR ON WAITPID with error:%s\n",strerror(errno));
 					}
 				}else{
-					fprintf(stderr,"ERROR ON WAITPID with error:%s\n",strerror(errno));
+					/*background job*/
+
 				}
 			}	
 }
