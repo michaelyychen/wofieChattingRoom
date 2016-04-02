@@ -763,7 +763,7 @@ int parse(char buf[],char copy[],char *argv[]){
 
    }
 
-	if(firstquote>=0&&secondquote>=0){
+	if(firstquote>-1&&secondquote>-1){
 		while(copy[i]!=0){
 	   	if(copy[i]==34){
 	   		i++;
