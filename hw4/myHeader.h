@@ -147,3 +147,15 @@ void EXIT();
 void resetHistory();
 
 void dumpHistory();
+
+void jobs();
+
+void fg();
+
+void bg();
+
+void killJob();
+
+void CtrlC();
+
+void CtrlZ();

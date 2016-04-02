@@ -15,6 +15,8 @@
 char *tokens[100];
 char lastLocation[100];
 char cmdHistory[50][MAX_INPUT];
+char jobList[50][MAX_INPUT];
+
 int status = 0;
 char historyLocation[100] = "";
 char cc = 0x1B;
@@ -212,6 +214,9 @@ int main (int argc, char ** argv, char **envp) {
       else if(last_char == 3) {
         write(1, "^c", 2);
      
+      }else if(last_char == 26) {
+        write(1, "^z", 2);
+     
       } else {
 
         //writes to the end of the string
@@ -219,7 +224,7 @@ int main (int argc, char ** argv, char **envp) {
         write(1, &last_char, 1);
         cmd[index]=last_char;
         
-
+    
         index ++;
         position++;
         
@@ -288,6 +293,7 @@ void eva(char* cmd){
 			
 		strcpy(buf, cmd);
 
+
 		/*parse command line*/
 		job = parse(buf,argv);
 
@@ -295,8 +301,11 @@ void eva(char* cmd){
 		  
 		/*check if command if empty*/
 		if(argv[0] == NULL){
+
 			return;
 		}
+		if(strcmp(argv[0],"clear-history") == 0)
+			resetHistory();
 		if(strcmp(argv[0],"exit") == 0)
 			EXIT();
 			
@@ -693,76 +702,38 @@ void directFile(int i, char *file,int newfd){
 
 int parse(char buf[],char *argv[]){
 
-  
-
    int index =0;
 
 
    const char s[1] = " ";
    char *token;
    char *str;
-   int index2 =0;
-   int firstquote =0;
-   int secondquote =0;
-   int temp=0;
-   char* merge;  
+ 
 
  /* get the first token */
+
    token = strtok(buf, s);
-     
+   
    /* walk through other tokens */
    while( token != NULL ) 
    {  
-
      argv[index]=token;
      token = strtok(NULL, s);		   
      index++;
    }
 
+    //set last index = NUll	
 
-   	//check for "" pair
-   while(index2<index){
-   		merge = argv[index2];
-	   	if(merge[0]==34){
-	   		firstquote=index2;
-	   		
-	   		while(index2<index){
-					
-					if(index2==firstquote&&strlen(argv[index2])==1){
-						index2++;
-					}
-
-					merge = argv[index2];
-					if(merge[strlen(merge)-1]== 34 ){
-						secondquote = index2;
-					}
-	   				index2++;
-	   			}
-	   		}
-   	index2++;
-   }
-
-
-   temp = firstquote+1;
-   while(temp<=secondquote){
-   	strcat(argv[firstquote],argv[temp]);
-   	temp++;
-   }
-   
-   if(secondquote>0){
-   	   index = secondquote+1;
-   }
-
-
-//set last index = NUll	
 	argv[index] = NULL;
-	
+	if(index==0){
+		return 1;
+	}
 	//get ride of /n 
 	str = argv[index-1];
 	str = strtok(str, "\n");
 
 	argv[index-1] = str;
-  
+   
 	//background process condition
 	if(argv[index-1] != NULL){
 		if(*argv[--index]=='&'){
@@ -772,7 +743,7 @@ int parse(char buf[],char *argv[]){
 	}
 
 
-	
+
 	//foreground process
 	return 1;
 }
@@ -862,10 +833,23 @@ void buildIn(char* cmd[], int *build_In){
 		/*call echo program*/
 		*build_In = 1;
 		dumpHistory();
-	}else if(!strcmp(cmd[0],"clear-history")){		
+	}else if(!strcmp(cmd[0],"jobs")){		
+		/*call pwd program*/
+		*build_In = 1;
+		jobs();
+	}else if(!strcmp(cmd[0],"fg")){		
 		/*call echo program*/
 		*build_In = 1;
-		resetHistory();
+		fg();
+	}
+	else if(!strcmp(cmd[0],"bg")){		
+		/*call echo program*/
+		*build_In = 1;
+		bg();
+	}else if(!strcmp(cmd[0],"kill")){		
+		/*call echo program*/
+		*build_In = 1;
+		killJob();
 	}
 	else if(!strcmp(cmd[0],"help")){		
 		/*call help program*/
@@ -1216,10 +1200,8 @@ void dumpHistory(){
 		
 		temp = cmdHistory[i];
 		if(strcmp(temp,"")!=0){
-			
-			write(1," ",1);
-			write(1,temp,strlen(temp));
-			write(1,"\n",1);
+			fprintf(stdout, "%d %s\n",i,temp );
+	
 		}
 		
 		i--;
@@ -1234,4 +1216,34 @@ void resetHistory(){
 
 	write(1,temp,strlen(temp));
 	write(1,"\n",1);
+}
+
+void jobs(){
+
+
+
+
+
+
+
+}
+
+void fg(){
+
+}
+
+void bg(){
+
+}
+
+void killJob(){
+
+}
+
+void CtrlC(){
+
+}
+
+void CtrlZ(){
+
 }
