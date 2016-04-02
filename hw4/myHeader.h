@@ -5,7 +5,7 @@
 *@param char *argv[]: argument list
 *@return 0 if background job, foreground otherwise
 **/
-int parse(char buf[],char *argv[]);
+int parse(char buf[],char buff[],char *argv[]);
 
 void parseRedir(char *argv[],char *argvs[128][128],char *symbols[128],char *files[2],int fdCO[2]);
 

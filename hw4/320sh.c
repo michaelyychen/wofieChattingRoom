@@ -292,13 +292,14 @@ void eva(char* cmd){
 
 		char *argv[MAX_ARG]; /*Argument list*/
 		char buf[MAX_INPUT]; /*Copy of command line*/
+		char copy[MAX_INPUT]; /*Copy of command line*/
 		int job;			 /*hold job type, background if 0, foreground otherwise*/
 			
 		strcpy(buf, cmd);
-
+		strcpy(copy, cmd);
 
 		/*parse command line*/
-		job = parse(buf,argv);
+		job = parse(buf,copy,argv);
 
 		printf("job = %d\n",job);
 		  
@@ -705,14 +706,26 @@ void directFile(int i, char *file,int newfd){
 }
 	
 
-int parse(char buf[],char *argv[]){
+int parse(char buf[],char copy[],char *argv[]){
 
    int index =0;
    const char s[1] = " ";
    char *token;
    char *str;
  
+   int index2 =0;
+   int firstquote =-1;
+   int secondquote =-1;
+   int difference =0;
+	char * merge;
 
+  
+   char temp[1024];
+
+ //strcpy(backup,buf);
+  
+   int i = 0;
+   int j = 0;
  /* get the first token */
 
    token = strtok(buf, s);
@@ -725,9 +738,72 @@ int parse(char buf[],char *argv[]){
      index++;
    }
 
+
+
+   	   	//check for "" pair
+   while(index2<index){
+   		merge = argv[index2];
+	   	if(merge[0]==34){
+	   		firstquote=index2;	
+	   		index2++;
+			while(index2<index){	
+
+
+					merge = argv[index2];
+					if(merge[strlen(merge)-1]== 34 ){
+						secondquote = index2;
+					}
+	   				index2++;
+	   			}
+	   		}
+   	index2++;
+   }
+
+   if(secondquote<firstquote){
+   	fprintf(stderr, "unbalanced quotation \n" );
+   }
+
+	if(firstquote>=0&&secondquote>=0){
+		while(copy[i]!=0){
+	   	if(copy[i]==34){
+	   		i++;
+	   		while(copy[i]!=34){
+
+	   			temp[j]=copy[i];
+
+	   			i++;
+	   			j++;
+	   		}
+	   		strcpy(argv[firstquote],temp);
+	   		printf("here |%s|\n",temp );
+	   		break;
+	   	}
+	   	i++;
+	   }
+
+	//move things foward	
+	   difference=secondquote-firstquote;
+	   i = firstquote+1;
+		while(i<index){
+			argv[i]= argv[i+difference];
+			argv[i+difference]= "";
+			i++;
+		}
+
+		   index = index - difference;	
+		   i =0;
+		 while(i<index){
+		 	printf("%d, %s\n",i,argv[i] );
+		 	i++;
+		 }  
+	}
+   
+
+
     //set last index = NUll	
 
 	argv[index] = NULL;
+
 	if(index==0){
 		return 1;
 	}
