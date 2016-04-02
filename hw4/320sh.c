@@ -304,7 +304,7 @@ void eva(char* cmd){
 		printf("job = %d\n",job);
 		  
 		/*check if command if empty*/
-		if(argv[0] == NULL){
+		if(argv[0] == NULL||job==-1){
 
 			return;
 		}
@@ -709,7 +709,7 @@ void directFile(int i, char *file,int newfd){
 int parse(char buf[],char copy[],char *argv[]){
 
    int index =0;
-   const char s[1] = " ";
+  
    char *token;
    char *str;
  
@@ -717,7 +717,7 @@ int parse(char buf[],char copy[],char *argv[]){
    int firstquote =-1;
    int secondquote =-1;
    int difference =0;
-	char * merge;
+   char * merge;
 
   
    char temp[1024];
@@ -728,13 +728,14 @@ int parse(char buf[],char copy[],char *argv[]){
    int j = 0;
  /* get the first token */
 
-   token = strtok(buf, s);
+   token = strtok(buf, " ");
    
    /* walk through other tokens */
    while( token != NULL ) 
    {  
      argv[index]=token;
-     token = strtok(NULL, s);		   
+ 
+     token = strtok(NULL, " ");		   
      index++;
    }
 
@@ -745,13 +746,17 @@ int parse(char buf[],char copy[],char *argv[]){
    		merge = argv[index2];
 	   	if(merge[0]==34){
 	   		firstquote=index2;	
-	   		index2++;
+	   		
 			while(index2<index){	
 
-
+					if(index2==firstquote&&strlen(argv[firstquote])==1){
+						index2++;
+						continue;
+					}
 					merge = argv[index2];
 					if(merge[strlen(merge)-1]== 34 ){
 						secondquote = index2;
+						break;
 					}
 	   				index2++;
 	   			}
@@ -761,6 +766,8 @@ int parse(char buf[],char copy[],char *argv[]){
 
    if(secondquote<firstquote){
    	fprintf(stderr, "unbalanced quotation \n" );
+   	return -1;
+
    }
 
 	if(firstquote>=0&&secondquote>=0){
@@ -775,7 +782,7 @@ int parse(char buf[],char copy[],char *argv[]){
 	   			j++;
 	   		}
 	   		strcpy(argv[firstquote],temp);
-	   		printf("here |%s|\n",temp );
+	   		
 	   		break;
 	   	}
 	   	i++;
@@ -786,7 +793,7 @@ int parse(char buf[],char copy[],char *argv[]){
 	   i = firstquote+1;
 		while(i<index){
 			argv[i]= argv[i+difference];
-			argv[i+difference]= "";
+		//	argv[i+difference]= "";
 			i++;
 		}
 
