@@ -1,4 +1,4 @@
-all: server client
+all: server chat server
 
 client: client.c
 	gcc -Wall -Werror -valgrind -o client client.c
