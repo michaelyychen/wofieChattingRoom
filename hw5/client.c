@@ -17,11 +17,11 @@
 
 int main (int argc, char ** argv) {
 	int clientfd;
-	char *host,*port,buf[MAXLINE];
+	char *host,*port;
 
 
 	if(argc!=3){
-		fprintf(stderr,"usage : %s<host> <port> \n",argv[0])
+		fprintf(stderr,"usage : %s<host> <port> \n",argv[0]);
 		exit(0);
 	}
 
@@ -44,7 +44,7 @@ int open_clientfd(char * hostname, char * port){
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_NUMERICSERV;
 	hints.ai_flags |= AI_ADDRCONFIG;
-
+	Getaddrinfo(hostname,port,&hints,&listPointer);
 	for(p=listPointer; p ; p=p->ai_next) {
 		if((clientfd=socket(p->ai_family,p->ai_socktype,p->ai_protocol))<0)
 			continue;
@@ -71,13 +71,14 @@ int Getaddrinfo(const char* host,
 				const struct addrinfo *hints,
 				 struct addrinfo **result){
 
-	int result;
-	result = getaddrinfo(host,service,hints, result);
-	if(result != 0)
-		fprintf(stderr,"Getaddrinfo with error: %s\n",gai_strerror(result));
-	return result;
+	int resultt;
+	resultt = getaddrinfo(host,service,hints, result);
+	if(resultt != 0)
+		fprintf(stderr,"Getaddrinfo with error: %s\n",gai_strerror(resultt));
+	return resultt;
 
 }
+
 
 int Close(int clientfd){
 

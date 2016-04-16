@@ -19,8 +19,8 @@ int main (int argc, char ** argv) {
 	
 	int listenfd,connfd;
 	socklen_t clientlen;
-	struct sockaddr_storage clientadr;
-	char client_hostname[MAXLINE], client_port[MAXLINE];
+	struct sockaddr_storage clientaddr;
+
 	
 	if(argc < 2){
 		fprintf(stderr,"Missing argument\n");
@@ -34,7 +34,7 @@ int main (int argc, char ** argv) {
 	
 	while(1){
 		clientlen = sizeof(struct sockaddr_storage);
-		connfd = accept(listenfd, (SA*)&clientaddr,&clientlen);
+		connfd = accept(listenfd, (struct sockaddr*)&clientaddr,&clientlen);
 		if(connfd>0){
 		 fprintf(stdout,"connected!!!!!!!!!");
 		 exit(0);
@@ -54,29 +54,29 @@ int open_listenfd(char * port){
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG;
 	hints.ai_flags |= AI_NUMERICSERV;
-	Getaddrinfo(Null, port, &hints,&listp);
+	Getaddrinfo(NULL, port, &hints,&list);
 	
 	/*loop to find a ip to bind*/
-	for(p=list;p;p->ai.next){
+	for(pt=list;pt;pt=pt->ai_next){
 		/*try to create a socket */
-		if((listenfd = socket(p->ai_family,p->ai_socketype,p->ai_protocol)) < 0)
+		if((listenfd = socket(pt->ai_family,pt->ai_socktype,pt->ai_protocol)) < 0)
 			continue; 
 			
-		Setsockopt(listenfd,SOL_SOCKET,SO_REUSEADDR,(const void*)&optval,sizeof(int));
+		setsockopt(listenfd,SOL_SOCKET,SO_REUSEADDR,(const void*)&optval,sizeof(int));
 		
 		/*bind*/
-		if(bind(listenfd,p_>ai_addr,p_>ai_addrlen)==0)
+		if(bind(listenfd,pt->ai_addr,pt->ai_addrlen)==0)
 			break;
 		Close(listenfd);
 	}
 	
 	/*free space*/
-	freeaddrinfo(listp);
-	if(!p)
+	freeaddrinfo(list);
+	if(!pt)
 	return -1;
 	
 	if(listen(listenfd,1024) < 0){
-		CLose(listenfd);
+		Close(listenfd);
 		return -1;
 	}
 	
@@ -90,11 +90,11 @@ int Getaddrinfo(const char* host,
 				const struct addrinfo *hints,
 				 struct addrinfo **result){
 
-	int result;
-	result = getaddrinfo(host,service,hints, result);
-	if(result < 0)
-		fprintf(stderr,"Getaddrinfo: %s with error: %s\n",pathname,strerror(errno));
-	return result;
+	int resultt;
+	resultt = getaddrinfo(host,service,hints, result);
+	if(resultt != 0)
+		fprintf(stderr,"Getaddrinfo with error: %s\n",gai_strerror(resultt));
+	return resultt;
 
 }
 
@@ -103,14 +103,18 @@ int Close(int clientfd){
 	int result;
 	result = close(clientfd);
 	if(result < 0)
-		fprintf(stderr,"Close: %s with error: %s\n",pathname,strerror(errno));
+		fprintf(stderr,"Close with error: %s\n",strerror(errno));
 	return result;
 }
 
-int Freeaddrinfo(const struct addrinfo *listPointer){
-	int result;
-	result = freeaddrinfo(listPointer);
-	if(result < 0)
-		fprintf(stderr,"Freeaddrinfo: %s with error: %s\n",pathname,strerror(errno));
-	return result;
+
+void HELP(){
+	fprintf(stdout,"Client Usage:\n \
+	./client [-hcv]		NAME SERVER_IP SERVER_PORT							\n \
+	-h					Displays this help menu, and returns EXIT_SUCCESS.	\n \
+	-c					Requests to server to create a new user				\n \
+	-v					Verbose print all incoming and outgoing protocol verbs&content.			\n \
+	NAME				This is the username to display when chatting.	\n \
+	SERVER_IP			The IP Address of the server to connect to.		\n \
+	SERVER_PORT			The port to connect to.	");
 }
