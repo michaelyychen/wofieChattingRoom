@@ -57,7 +57,7 @@ int open_clientfd(char * hostname, char * port){
 
 	}
 
-		Freeaddrinfo(listPointer);
+		freeaddrinfo(listPointer);
 		if(!p)		//if failed
 			return -1;
 		else
@@ -73,8 +73,8 @@ int Getaddrinfo(const char* host,
 
 	int result;
 	result = getaddrinfo(host,service,hints, result);
-	if(result < 0)
-		fprintf(stderr,"Getaddrinfo: %s with error: %s\n",pathname,strerror(errno));
+	if(result != 0)
+		fprintf(stderr,"Getaddrinfo with error: %s\n",gai_strerror(result));
 	return result;
 
 }
@@ -84,14 +84,18 @@ int Close(int clientfd){
 	int result;
 	result = close(clientfd);
 	if(result < 0)
-		fprintf(stderr,"Close: %s with error: %s\n",pathname,strerror(errno));
+		fprintf(stderr,"Close with error: %s\n",strerror(errno));
 	return result;
 }
 
-int Freeaddrinfo(const struct addrinfo *listPointer){
-	int result;
-	result = freeaddrinfo(listPointer);
-	if(result < 0)
-		fprintf(stderr,"Freeaddrinfo: %s with error: %s\n",pathname,strerror(errno));
-	return result;
+
+void HELP(){
+	fprintf(stdout,"Client Usage:\n \
+	./client [-hcv]		NAME SERVER_IP SERVER_PORT							\n \
+	-h					Displays this help menu, and returns EXIT_SUCCESS.	\n \
+	-c					Requests to server to create a new user				\n \
+	-v					Verbose print all incoming and outgoing protocol verbs&content.			\n \
+	NAME				This is the username to display when chatting.	\n \
+	SERVER_IP			The IP Address of the server to connect to.		\n \
+	SERVER_PORT			The port to connect to.	");
 }

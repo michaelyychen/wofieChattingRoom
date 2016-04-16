@@ -8,3 +8,5 @@ int Getaddrinfo(const char* host,const char*service,const struct addrinfo *hints
 
 int Close(int clientfd);
 
+
+void HELP();
