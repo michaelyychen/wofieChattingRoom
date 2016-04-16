@@ -1119,7 +1119,8 @@ void splitPath(){
 	strcat(path2,paths);
 
 	token = strtok(path2, ":");
-	
+	memset(tokens,0,100);
+
 	//copy all paths to string array
 		while( token != NULL ) 
 	  	{
