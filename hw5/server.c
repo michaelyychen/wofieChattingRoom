@@ -12,13 +12,22 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <sys/select.h>
+#include <time.h>
 #include "myHeader.h"
 
 #define MAXLINE 1024
+/*#define struct User{
+	time_t loginTime;
+	int clientSock;
+	char[20] name;
+}*/
 
 int main (int argc, char ** argv){
 	
 	int listenfd;
+
+	time_t current_time = time(0);
+	getTime(current_time);
 
 	if(argc < 2){
 		fprintf(stderr,"Missing argument\n");
@@ -30,7 +39,7 @@ int main (int argc, char ** argv){
 		exit(0);
 	}
 
-/*for multiIndexing*/
+	/*for multiIndexing*/
 	fd_set read_set, ready_set;
 	FD_ZERO(&read_set);
 	FD_SET(STDIN_FILENO,&read_set);
@@ -44,12 +53,22 @@ int main (int argc, char ** argv){
 		if(FD_ISSET(STDIN_FILENO,&ready_set))
 			stdinCommand();
 		if(FD_ISSET(listenfd,&ready_set))
-			clientCommand(listenfd);
-		
+			clientCommand(listenfd);		
 	}
 	
 	
 	exit(0);
+}
+void getTime(time_t current_time){
+	
+	struct tm* timeinfo;
+	timeinfo = localtime(&current_time);
+	fprintf(stdout,"time in second is [%d %d %d %d:%d:%d]\n",
+		timeinfo->tm_mday, timeinfo->tm_mon + 1, 
+		timeinfo->tm_year + 1900, timeinfo->tm_hour, 
+		timeinfo->tm_min, timeinfo->tm_sec);
+	
+
 }
 void stdinCommand(){
 	char buf[MAXLINE];
@@ -65,6 +84,8 @@ void clientCommand(int listenfd){
 	socklen_t clientlen = sizeof(struct sockaddr_storage);
 
 	connfd = accept(listenfd, (struct sockaddr*)&clientaddr,&clientlen);
+	fprintf(stdout,"connected address is : %d \n",
+		((struct sockaddr_in*)&clientaddr)->sin_addr.s_addr);
 	if(connfd>0){
 	 fprintf(stdout,"connected!!!!!!!!\n");
 	 exit(0);
@@ -150,4 +171,32 @@ void HELP(){
 	NAME				This is the username to display when chatting.	\n \
 	SERVER_IP			The IP Address of the server to connect to.		\n \
 	SERVER_PORT			The port to connect to.	");
+}
+
+void color(char* color){
+
+	char cc = 0x1B;
+	char bb = 0x5B;
+	char mm = 109;
+	
+    write(1,&cc,1);  
+    write(1,&bb,1);
+   
+    if(strcmp(color,"red")==0){
+    	write(1,"31",2);
+    }else if (strcmp(color,"green")==0){
+		write(1,"32",2);
+    }else if(strcmp(color,"yellow")==0){
+		write(1,"33",2);
+    }else if(strcmp(color,"blue")==0){
+		write(1,"34",2);
+    }else if(strcmp(color,"magenta")==0){
+		write(1,"35",2);
+    }else if(strcmp(color,"cyan")==0){
+		write(1,"36",2);
+    }else {
+    	write(1,"37",2);
+    }
+  
+    write(1,&mm,1);
 }

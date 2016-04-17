@@ -26,7 +26,7 @@ return listenfd upon success, -1 otherwise
 */ 
 int open_listenfd(char * port);
 
-void color(char*color);
+void color(char* color);
 
 /*helper for stdin command*/
 void stdinCommand();
@@ -34,4 +34,4 @@ void stdinCommand();
 /*helper for client command*/
 void clientCommand(int listenfd);
 
-
+void getTime(time_t current_time);
