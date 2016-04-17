@@ -57,6 +57,7 @@ void stdinCommand(){
 		exit(0);
 	printf("%s\n",buf);
 }
+
 void clientCommand(int listenfd){
 	/*spawn a login thread*/
 
@@ -65,10 +66,15 @@ void clientCommand(int listenfd){
 	socklen_t clientlen = sizeof(struct sockaddr_storage);
 
 	connfd = accept(listenfd, (struct sockaddr*)&clientaddr,&clientlen);
-	if(connfd>0){
-	 fprintf(stdout,"connected!!!!!!!!\n");
-	 exit(0);
-	 }
+	fd_set read_set;
+	FD_ZERO(&read_set);
+	FD_SET(STDIN_FILENO,&read_set);
+	FD_SET(connfd,&read_set);
+	Select(connfd+1,&read_set);
+	if(FD_ISSET(connfd,&read_set)){
+
+		fprintf(stdout, "asdasd\n" );
+	}
 
 }
 

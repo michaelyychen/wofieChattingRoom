@@ -11,36 +11,81 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <sys/select.h>
 #include "myHeader.h"
 
 #define MAXLINE 1024
 
 char cc = 0x1B;
 char bb = 0x5B;
+char username[20];
+char host[20];
+char port[20];
+int clientfd;
 
 int main (int argc, char ** argv) {
-	/*
-	//int clientfd;
-	//char *host,*port;
+	
 
 
-	if(argc!=3){
-		fprintf(stderr,"usage : %s<host> <port> \n",argv[0]);
+
+	if(argc<4){
+		errorPrint();
+		fprintf(stderr,"usage : %s <username> <host> <port> \n",argv[0]);
+		exit(0);
+	}
+	username=argv[1];
+	host=argv[2];
+	port=argv[3];
+
+	if((clientfd=open_clientfd(argv[2],argv[3])) < 0){
+		errorPrint();
+		fprintf(stderr,"Open client fd failed\n");
 		exit(0);
 	}
 
-	//host=argv[1];
-	//port=argv[2];
-	*/
-	color("yellow");
+/*for multiIndexing*/
+	fd_set read_set, ready_set;
+	FD_ZERO(&read_set);
+	FD_SET(STDIN_FILENO,&read_set);
+	FD_SET(clientfd,&read_set);
 
-	fprintf(stdout,"usage : %s<host> <port> \n",argv[0]);
-
-
-	//Close(clientfd);
+	/*loop to see where input is from*/	
+	while(1){
+		ready_set = read_set;
+		Select(clientfd+1,&ready_set);
+		/*check for input from stdin*/
+		if(FD_ISSET(STDIN_FILENO,&ready_set))
+			stdinCommand();
+		if(FD_ISSET(clientfd,&ready_set))
+			serverCommand(clientfd);
+		
+	}
+	
+	Close(clientfd);
 	exit(0);
 }
+void stdinCommand(){
+	char buf[MAXLINE];
+	if(!fgets(buf,MAXLINE,stdin))
+		exit(0);
+	if(!strcmp(buf,"\"help")){
+		
+	}else if(!strcmp(buf,"\"logout")){
+		write(clientfd,"BYE\r\n\r\n",5);
+	}else if(!strcmp(buf,"\"listu")){
+		write(clientfd,"LISTU\r\n\r\n",5);
+	}else if(!strcmp(buf,"\"time")){
+		write(clientfd,"TIME\r\n\r\n",5);
+	}else if(!strncmp(buf,"\"chat",5)){
+		startChat();
+	}
 
+
+}
+
+void serverCommand(int clientfd){
+
+}	
 int open_clientfd(char * hostname, char * port){
 
 	struct addrinfo hints,*listPointer,*p;
@@ -95,16 +140,20 @@ int Close(int clientfd){
 	return result;
 }
 
+void Select(int n,fd_set *set){
+	if(select(n,set,NULL,NULL,NULL)<0)
+		fprintf(stderr,"Error on select\n");	
+}
 
 void HELP(){
 	fprintf(stdout,"Client Usage:\n \
 	./client [-hcv]		NAME SERVER_IP SERVER_PORT							\n \
-	-h					Displays this help menu, and returns EXIT_SUCCESS.	\n \
-	-c					Requests to server to create a new user				\n \
-	-v					Verbose print all incoming and outgoing protocol verbs&content.			\n \
-	NAME				This is the username to display when chatting.	\n \
-	SERVER_IP			The IP Address of the server to connect to.		\n \
-	SERVER_PORT			The port to connect to.	");
+	-h			Displays this help menu, and returns EXIT_SUCCESS.	\n \
+	-c			Requests to server to create a new user				\n \
+	-v			Verbose print all incoming and outgoing protocol verbs&content.			\n \
+	NAME		This is the username to display when chatting.	\n \
+	SERVER_IP	The IP Address of the server to connect to.		\n \
+	SERVER_PORT	The port to connect to.	");
 }
 
 
@@ -135,4 +184,11 @@ void color(char* color){
     }
   
     write(1,&mm,1);
+}
+
+void errorPrint(){
+	color("red");
+	fprintf(stderr, "error: " );
+	color("white");
+
 }
