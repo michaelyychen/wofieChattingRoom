@@ -1,7 +1,7 @@
 all: server client
 
 client: client.c
-	gcc -Wall -Werror  -o client client.c
+	gcc -Wall -Werror  -g -o client client.c
 
 chat: chat.c
 	gcc -Wall -Werror  -o chat chat.c

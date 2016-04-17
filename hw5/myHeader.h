@@ -26,3 +26,4 @@ return listenfd upon success, -1 otherwise
 */ 
 int open_listenfd(char * port);
 
+void color(char*color);
