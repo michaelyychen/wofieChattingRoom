@@ -11,17 +11,15 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <sys/select.h>
 #include "myHeader.h"
 
 #define MAXLINE 1024
 
-int main (int argc, char ** argv) {
+int main (int argc, char ** argv){
 	
-	int listenfd,connfd;
-	socklen_t clientlen;
-	struct sockaddr_storage clientaddr;
+	int listenfd;
 
-	
 	if(argc < 2){
 		fprintf(stderr,"Missing argument\n");
 		exit(0);
@@ -31,19 +29,54 @@ int main (int argc, char ** argv) {
 		fprintf(stderr,"Open listen fd failed\n");
 		exit(0);
 	}
-	
+
+/*for multiIndexing*/
+	fd_set read_set, ready_set;
+	FD_ZERO(&read_set);
+	FD_SET(STDIN_FILENO,&read_set);
+	FD_SET(listenfd,&read_set);
+
+	/*loop to see where input is from*/	
 	while(1){
-		clientlen = sizeof(struct sockaddr_storage);
-		connfd = accept(listenfd, (struct sockaddr*)&clientaddr,&clientlen);
-		if(connfd>0){
-		 fprintf(stdout,"connected!!!!!!!!!\n");
-		 exit(0);
-		 }
+		ready_set = read_set;
+		Select(listenfd+1,&ready_set);
+		/*check for input from stdin*/
+		if(FD_ISSET(STDIN_FILENO,&ready_set))
+			stdinCommand();
+		if(FD_ISSET(listenfd,&ready_set))
+			clientCommand(listenfd);
+		
 	}
 	
 	
 	exit(0);
 }
+void stdinCommand(){
+	char buf[MAXLINE];
+	if(!fgets(buf,MAXLINE,stdin))
+		exit(0);
+	printf("%s\n",buf);
+}
+void clientCommand(int listenfd){
+	/*spawn a login thread*/
+
+	int connfd;
+	struct sockaddr_storage clientaddr;
+	socklen_t clientlen = sizeof(struct sockaddr_storage);
+
+	connfd = accept(listenfd, (struct sockaddr*)&clientaddr,&clientlen);
+	if(connfd>0){
+	 fprintf(stdout,"connected!!!!!!!!\n");
+	 exit(0);
+	 }
+
+}
+
+void Select(int n,fd_set *set){
+	if(select(n,set,NULL,NULL,NULL)<0)
+		fprintf(stderr,"Error on select\n");	
+}
+
 
 int open_listenfd(char * port){
 	struct addrinfo  hints, *list, *pt;
