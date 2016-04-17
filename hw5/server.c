@@ -27,7 +27,7 @@ int main (int argc, char ** argv) {
 		exit(0);
 		}
 	
-	if((listenfd = open_listenfd(argv[1]) < 0)){
+	if((listenfd = open_listenfd(argv[1])) < 0){
 		fprintf(stderr,"Open listen fd failed\n");
 		exit(0);
 	}
@@ -36,7 +36,7 @@ int main (int argc, char ** argv) {
 		clientlen = sizeof(struct sockaddr_storage);
 		connfd = accept(listenfd, (struct sockaddr*)&clientaddr,&clientlen);
 		if(connfd>0){
-		 fprintf(stdout,"connected!!!!!!!!!");
+		 fprintf(stdout,"connected!!!!!!!!!\n");
 		 exit(0);
 		 }
 	}
@@ -47,7 +47,7 @@ int main (int argc, char ** argv) {
 
 int open_listenfd(char * port){
 	struct addrinfo  hints, *list, *pt;
-	int listenfd, optval=1;
+	int listenfd;
 	
 	/*create a list of potential server addresses*/
 	memset(&hints,0,sizeof(struct addrinfo));
@@ -62,7 +62,7 @@ int open_listenfd(char * port){
 		if((listenfd = socket(pt->ai_family,pt->ai_socktype,pt->ai_protocol)) < 0)
 			continue; 
 			
-		setsockopt(listenfd,SOL_SOCKET,SO_REUSEADDR,(const void*)&optval,sizeof(int));
+		//setsockopt(listenfd,SOL_SOCKET,SO_REUSEADDR,(const void*)&optval,sizeof(int));
 		
 		/*bind*/
 		if(bind(listenfd,pt->ai_addr,pt->ai_addrlen)==0)
