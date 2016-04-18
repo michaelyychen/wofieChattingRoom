@@ -24,25 +24,38 @@ char port[20];
 int clientfd;
 
 int main (int argc, char ** argv) {
-	
 
+	int opt = 0;
+	while((opt = getopt(argc,argv,"hcv")) != -1){
+		if(opt == 'h'){
+			HELP();
+			exit(EXIT_SUCCESS);
+		}else if(opt == 'c'){
 
+		}
+		else if(opt == 'v'){
+
+		}
+			
+	}
 
 	if(argc<4){
 		errorPrint();
-		fprintf(stderr,"usage : %s <username> <host> <port> \n",argv[0]);
+		fprintf(stderr,"Missing arguments \n");
+		HELP();
 		exit(0);
 	}
-	username=argv[1];
-	host=argv[2];
-	port=argv[3];
+
+	strcpy(username,argv[1]);
+	strcpy(host,argv[2]);
+	strcpy(port,argv[3]);
 
 	if((clientfd=open_clientfd(argv[2],argv[3])) < 0){
 		errorPrint();
 		fprintf(stderr,"Open client fd failed\n");
 		exit(0);
 	}
-
+		
 /*for multiIndexing*/
 	fd_set read_set, ready_set;
 	FD_ZERO(&read_set);
@@ -68,15 +81,15 @@ void stdinCommand(){
 	char buf[MAXLINE];
 	if(!fgets(buf,MAXLINE,stdin))
 		exit(0);
-	if(!strcmp(buf,"\"help")){
-		
-	}else if(!strcmp(buf,"\"logout")){
+	if(!strcmp(buf,"/help\n")){
+		helpCommand();
+	}else if(!strcmp(buf,"/logout\n")){
 		write(clientfd,"BYE\r\n\r\n",5);
-	}else if(!strcmp(buf,"\"listu")){
+	}else if(!strcmp(buf,"/listu\n")){
 		write(clientfd,"LISTU\r\n\r\n",5);
-	}else if(!strcmp(buf,"\"time")){
+	}else if(!strcmp(buf,"/time\n")){
 		write(clientfd,"TIME\r\n\r\n",5);
-	}else if(!strncmp(buf,"\"chat",5)){
+	}else if(!strncmp(buf,"/chat",5)){
 		startChat();
 	}
 
@@ -146,17 +159,30 @@ void Select(int n,fd_set *set){
 }
 
 void HELP(){
-	fprintf(stdout,"Client Usage:\n \
-	./client [-hcv]		NAME SERVER_IP SERVER_PORT							\n \
-	-h			Displays this help menu, and returns EXIT_SUCCESS.	\n \
-	-c			Requests to server to create a new user				\n \
-	-v			Verbose print all incoming and outgoing protocol verbs&content.			\n \
+	color("yellow");
+	fprintf(stdout,"Client Usage:\n" );
+	color("white");
+	fprintf(stdout,
+	"./client [-hcv] <NAME> <SERVER_IP> <SERVER_PORT>							\n \
+	-h		Displays this help menu, and returns EXIT_SUCCESS.	\n \
+	-c		Requests to server to create a new user				\n \
+	-v		Verbose print all incoming and outgoing protocol verbs&content.			\n \
 	NAME		This is the username to display when chatting.	\n \
 	SERVER_IP	The IP Address of the server to connect to.		\n \
-	SERVER_PORT	The port to connect to.	");
+	SERVER_PORT	The port to connect to.	\n");
 }
 
-
+void helpCommand(){
+	color("yellow");
+	fprintf(stdout,"Client Commands:\n" );
+	color("white");
+	fprintf(stdout,
+	"	/time		Show how long have been connected to the server.\n \
+	/logout		Log out from the server.				\n \
+	/help		List all the commands accepted by the program.			\n \
+	/listu		List all the user currently on the server.	\n \
+	/chat		Starting a chat with someone.	\n ");
+}
 
 void color(char* color){
 
@@ -191,4 +217,8 @@ void errorPrint(){
 	fprintf(stderr, "error: " );
 	color("white");
 
+}
+
+startChat(){
+	
 }
