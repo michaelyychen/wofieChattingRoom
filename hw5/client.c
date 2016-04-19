@@ -54,6 +54,7 @@ int main (int argc, char ** argv) {
 		errorPrint();
 		fprintf(stderr,"Open client fd failed\n");
 		exit(0);
+
 	}
 
 /*ready to login*/
@@ -109,9 +110,9 @@ int login(){
 		if(!strcmp(buffer,nameBuffer)){
 			//login sucess, print MOTD <message>
 			read(clientfd,&buffer,sizeof(buffer));
-			color("green",stdout);
+			color("green",1);
 			fprintf(stdout, "%s\n",buffer );	
-			color("white",stdout);
+			color("white",1);
 
 			return 1;
 		}else{
@@ -220,9 +221,9 @@ void Select(int n,fd_set *set){
 }
 
 void HELP(){
-	color("yellow",stdout);
+	color("yellow",1);
 	fprintf(stdout,"Client Usage:\n" );
-	color("white",stdout);
+	color("white",1);
 	fprintf(stdout,
 	"./client [-hcv] <NAME> <SERVER_IP> <SERVER_PORT>							\n \
 	-h		Displays this help menu, and returns EXIT_SUCCESS.	\n \
@@ -234,9 +235,9 @@ void HELP(){
 }
 
 void helpCommand(){
-	color("yellow",stdout);
+	color("yellow",1);
 	fprintf(stdout,"Client Commands:\n" );
-	color("white",stdout);
+	color("white",1);
 	fprintf(stdout,
 	"	/time		Show how long have been connected to the server.\n \
 	/logout		Log out from the server.				\n \
@@ -275,9 +276,9 @@ void color(char* color,int fd){
 }
 
 void errorPrint(){
-	color("red",stderr);
+	color("red",2);
 	fprintf(stderr, "error: " );
-	color("white",stderr);
+	color("white",2);
 
 }
 
@@ -329,9 +330,9 @@ void timeHandler(){
 	minute=timeInSec/60;
 	second=timeInSec%60;
 
-	color("blue",stdout);
+	color("blue",1);
 	fprintf(stdout, "Connected for ");
-	color("white",stdout);
+	color("white",1);
 	fprintf(stdout, "%d hour(s) %d minute(s) and %d seconds(s)\n",
 						hour,minute,second );
 }
