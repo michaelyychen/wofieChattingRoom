@@ -109,9 +109,9 @@ int login(){
 		if(!strcmp(buffer,nameBuffer)){
 			//login sucess, print MOTD <message>
 			read(clientfd,&buffer,sizeof(buffer));
-			color("green");
+			color("green",stdout);
 			fprintf(stdout, "%s\n",buffer );	
-			color("white");
+			color("white",stdout);
 
 			return 1;
 		}else{
@@ -149,8 +149,17 @@ void stdinCommand(){
 }
 
 void serverCommand(int clientfd){
+	char buffer[50];
 
+	read(clientfd,&buffer,sizeof(buffer));
+
+	//handle shut down server command
+	if(!strncmp(buffer,"BYE \r\n\r\n",8)){
+		Close(clientfd);
+		exit(EXIT_SUCCESS);
+	}
 }	
+
 int open_clientfd(char * hostname, char * port){
 
 	struct addrinfo hints,*listPointer,*p;
@@ -211,9 +220,9 @@ void Select(int n,fd_set *set){
 }
 
 void HELP(){
-	color("yellow");
+	color("yellow",stdout);
 	fprintf(stdout,"Client Usage:\n" );
-	color("white");
+	color("white",stdout);
 	fprintf(stdout,
 	"./client [-hcv] <NAME> <SERVER_IP> <SERVER_PORT>							\n \
 	-h		Displays this help menu, and returns EXIT_SUCCESS.	\n \
@@ -225,9 +234,9 @@ void HELP(){
 }
 
 void helpCommand(){
-	color("yellow");
+	color("yellow",stdout);
 	fprintf(stdout,"Client Commands:\n" );
-	color("white");
+	color("white",stdout);
 	fprintf(stdout,
 	"	/time		Show how long have been connected to the server.\n \
 	/logout		Log out from the server.				\n \
@@ -236,38 +245,39 @@ void helpCommand(){
 	/chat		Starting a chat with someone.	\n ");
 }
 
-void color(char* color){
+void color(char* color,int fd){
 
 	char cc = 0x1B;
 	char bb = 0x5B;
 	char mm = 109;
-	
-    write(1,&cc,1);  
-    write(1,&bb,1);
-   
+
+    write(fd,&cc,1);
+    write(fd,&bb,1);
+
+
     if(strcmp(color,"red")==0){
-    	write(1,"31",2);
+    	write(fd,"31",2);
     }else if (strcmp(color,"green")==0){
-		write(1,"32",2);
+		write(fd,"32",2);
     }else if(strcmp(color,"yellow")==0){
-		write(1,"33",2);
+		write(fd,"33",2);
     }else if(strcmp(color,"blue")==0){
-		write(1,"34",2);
+		write(fd,"34",2);
     }else if(strcmp(color,"magenta")==0){
-		write(1,"35",2);
+		write(fd,"35",2);
     }else if(strcmp(color,"cyan")==0){
-		write(1,"36",2);
+		write(fd,"36",2);
     }else {
-    	write(1,"37",2);
+    	write(fd,"37",2);
     }
-  
-    write(1,&mm,1);
+
+    write(fd,&mm,1);
 }
 
 void errorPrint(){
-	color("red");
+	color("red",stderr);
 	fprintf(stderr, "error: " );
-	color("white");
+	color("white",stderr);
 
 }
 
@@ -319,9 +329,9 @@ void timeHandler(){
 	minute=timeInSec/60;
 	second=timeInSec%60;
 
-	color("blue");
+	color("blue",stdout);
 	fprintf(stdout, "Connected for ");
-	color("white");
+	color("white",stdout);
 	fprintf(stdout, "%d hour(s) %d minute(s) and %d seconds(s)\n",
 						hour,minute,second );
 }

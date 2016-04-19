@@ -40,8 +40,7 @@ int open_listenfd(char * port);
 
 void errorPrint();
 
-void color(char*color);
-void Color(char*color,int fd);
+void color(char*color,int fd);
 
 
 /*warppers*/
