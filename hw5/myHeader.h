@@ -17,7 +17,16 @@ void helpCommand();
 void serverCommand(int clientfd);
 
 void startChat();
+//positive = login success o.w. failed
+int login();
 
+void timeHandler();
+
+void logoutHandler();
+
+void listuHandler();
+
+int stringToInt(char*str);
 /*
 hua li de fen ge xian
 --------------------------------------------------------------------------------

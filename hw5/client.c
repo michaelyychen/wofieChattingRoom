@@ -55,7 +55,14 @@ int main (int argc, char ** argv) {
 		fprintf(stderr,"Open client fd failed\n");
 		exit(0);
 	}
-		
+
+/*ready to login*/
+	if(login()<0){
+		errorPrint();
+		fprintf(stderr, "Login response failed\n" );
+		Close(clientfd);
+		exit(0);
+	}	
 /*for multiIndexing*/
 	fd_set read_set, ready_set;
 	FD_ZERO(&read_set);
@@ -77,6 +84,51 @@ int main (int argc, char ** argv) {
 	Close(clientfd);
 	exit(0);
 }
+
+//positive = login success o.w. failed
+int login(){
+	char buffer[50];
+	char nameBuffer[20];		//HI_<name>_\r\n\r\n
+
+	strcat(nameBuffer,"HI ");
+	strcat(nameBuffer,username);
+	strcat(nameBuffer," \r\n\r\n");
+
+
+	write(clientfd,"WOLFIE \r\n\r\n",11);
+	read(clientfd,&buffer,11);
+
+	if(!strncmp(buffer,"EIFLOW \r\n\r\n",11)){
+		write(clientfd,"IAM ",4);
+		write(clientfd,&username,sizeof(username));
+		write(clientfd," \r\n\r\n",5);
+
+		read(clientfd,&buffer,sizeof(buffer));
+
+
+		if(!strcmp(buffer,nameBuffer)){
+			//login sucess, print MOTD <message>
+			read(clientfd,&buffer,sizeof(buffer));
+			color("green");
+			fprintf(stdout, "%s\n",buffer );	
+			color("white");
+
+			return 1;
+		}else{
+			//error occurs
+			read(clientfd,&buffer,sizeof(buffer));
+			if(!strncmp(buffer,"BYE \r\n\r\n",8)){
+				write(clientfd,"BYE \r\n\r\n",8);
+			}
+
+			return -1;	
+		}
+
+	}else{
+		return -1;	
+	}
+
+}
 void stdinCommand(){
 	char buf[MAXLINE];
 	if(!fgets(buf,MAXLINE,stdin))
@@ -84,13 +136,13 @@ void stdinCommand(){
 	if(!strcmp(buf,"/help\n")){
 		helpCommand();
 	}else if(!strcmp(buf,"/logout\n")){
-		write(clientfd,"BYE\r\n\r\n",5);
+		logoutHandler();
 	}else if(!strcmp(buf,"/listu\n")){
-		write(clientfd,"LISTU\r\n\r\n",5);
+		listuHandler();
 	}else if(!strcmp(buf,"/time\n")){
-		write(clientfd,"TIME\r\n\r\n",5);
+		timeHandler();
 	}else if(!strncmp(buf,"/chat",5)){
-		startChat();
+	
 	}
 
 
@@ -219,6 +271,70 @@ void errorPrint(){
 
 }
 
-startChat(){
-	
+void listuHandler(){
+	char buffer[1024];
+
+	write(clientfd,"LISTU \r\n\r\n",10);
+	read(clientfd,&buffer,sizeof(buffer));
+	if(!strncmp(buffer,"UTSIL \r\n\r\n",10)){
+		int i;
+		for(i=6;i<strlen(buffer);i++){
+			fprintf(stdout, "%c",buffer[i]);
+		}
+	}
+}
+
+void logoutHandler(){
+	char buffer[50];
+
+	write(clientfd,"BYE \r\n\r\n",8);
+	read(clientfd,&buffer,sizeof(buffer));
+	if(!strncmp(buffer,"BYE \r\n\r\n",8)){
+		Close(clientfd);
+		exit(EXIT_SUCCESS);
+	}
+
+}
+void timeHandler(){
+	char buffer[50];
+	char temp[3][50];
+	char* token;
+	int index =0;
+	int hour,minute,second;
+
+	write(clientfd,"TIME \r\n\r\n",9);
+	read(clientfd,&buffer,sizeof(buffer));
+
+	token = strtok(buffer," ");
+
+	while(token!=NULL){
+		strcpy(temp[index],token);
+		token = strtok(NULL," ");
+		index++;
+	}
+
+	int timeInSec=stringToInt(temp[1]);
+
+	hour=timeInSec/3600;
+	minute=timeInSec/60;
+	second=timeInSec%60;
+
+	color("blue");
+	fprintf(stdout, "Connected for ");
+	color("white");
+	fprintf(stdout, "%d hour(s) %d minute(s) and %d seconds(s)\n",
+						hour,minute,second );
+}
+
+int stringToInt(char* str){
+	int result=0;
+	int i;
+	int stringLen = strlen(str);
+
+	for(i=0; i<stringLen; i++){
+
+	result = result * 10 + ( str[i] - '0' );
+
+	}
+	return result;
 }
