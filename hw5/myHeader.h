@@ -34,13 +34,23 @@ hua li de fen ge xian
 
 /*helper to open a listen fd
 return listenfd upon success, -1 otherwise
-*/ 
+*/
 int open_listenfd(char * port);
 
 
 void errorPrint();
 
 void color(char*color);
+void Color(char*color,int fd);
+
+
+/*warppers*/
+int Accept(int socket, struct sockaddr *addr, socklen_t *socklen);
+int Pthread_join(pthread_t tid, void **thread_return);
+int Pthread_detach(pthread_t tid);
+
+/*thread functions*/
+void *loginThread(void *vargp);
 
 
 /*helper for stdin command*/
@@ -51,4 +61,3 @@ void clientCommand(int listenfd);
 
 
 void getTime(time_t current_time);
-
