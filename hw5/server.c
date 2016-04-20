@@ -18,10 +18,10 @@
 
 #define _GUN_SOURCE
 #define MAXLINE 1024
-#define nameTaken = 0;
-#define notAvailable = 1;
-#define badPassword = 2;
-#define serverError = 100;
+#define nameTaken 0
+#define notAvailable 1
+#define badPassword 2
+#define serverError 100
 
 struct User{
 	time_t loginTime;
@@ -158,7 +158,7 @@ void *loginThread(void *connfd){
 }
 void handleError(int error_code,int *fd){
 	if(error_code==nameTaken){
-		write(*fd,"ERR 00 USER NAME TAKEN \r\n\r\n");
+		write(*fd,"ERR 00 USER NAME TAKEN \r\n\r\n",30);
 	}else if(error_code==notAvailable){
 
 	}else if(error_code==badPassword){
@@ -171,7 +171,7 @@ void handleError(int error_code,int *fd){
 int checkLogin(char *name){
 	/*if user already login in, return 0*/
 	int currentlyIn = 1;
-	User *temp = userHead
+	User *temp = userHead;
 	while(temp!=NULL){
 		if(!strcmp(temp->name,name))
 			currentlyIn = 0;
