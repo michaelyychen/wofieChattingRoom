@@ -137,13 +137,13 @@ void stdinCommand(){
 	if(!strcmp(buf,"/help\n")){
 		helpCommand();
 	}else if(!strcmp(buf,"/logout\n")){
-		logoutHandler();
+		write(clientfd,"BYE \r\n\r\n",8);
 	}else if(!strcmp(buf,"/listu\n")){
-		listuHandler();
+		write(clientfd,"LISTU \r\n\r\n",10);
 	}else if(!strcmp(buf,"/time\n")){
-		timeHandler();
+		write(clientfd,"TIME \r\n\r\n",9);
 	}else if(!strncmp(buf,"/chat",5)){
-	
+		startChatHandler(&buf);
 	}
 
 
@@ -159,6 +159,17 @@ void serverCommand(int clientfd){
 		Close(clientfd);
 		exit(EXIT_SUCCESS);
 	}
+	else if(!strncmp(buffer,"UTSIL",5)){
+		int i;
+		for(i=6;i<strlen(buffer);i++){
+			fprintf(stdout, "%c",buffer[i]);
+		}
+	}else if(!strncmp(buffer,"EMIT",4)){
+		timeHandler(&buffer);
+	}else if(!strncmp(buffer,"MSG",3)){
+
+	}
+
 }	
 
 int open_clientfd(char * hostname, char * port){
@@ -215,6 +226,84 @@ int Close(int clientfd){
 	return result;
 }
 
+void timeHandler(char* buf){
+	char buffer[50];
+	char temp[3][50];
+	char* token;
+	int index =0;
+	int hour,minute,second;
+	strcpy(buffer,buf);
+
+	token = strtok(buffer," ");
+
+	while(token!=NULL){
+		strcpy(temp[index],token);
+		token = strtok(NULL," ");
+		index++;
+	}
+
+	int timeInSec=stringToInt(temp[1]);
+
+	hour=timeInSec/3600;
+	minute=timeInSec/60;
+	second=timeInSec%60;
+
+	color("blue",1);
+	fprintf(stdout, "Connected for ");
+	color("white",1);
+	fprintf(stdout, "%d hour(s) %d minute(s) and %d seconds(s)\n",
+						hour,minute,second );
+}
+
+int stringToInt(char* str){
+	int result=0;
+	int i;
+	int stringLen = strlen(str);
+
+	for(i=0; i<stringLen; i++){
+
+	result = result * 10 + ( str[i] - '0' );
+
+	}
+	return result;
+}
+
+void startChatHandler(char*buf){
+
+	char buffer[MAXLINE];
+	//format the buffer so that [0]=/chat [1]=<TO> [2]=message
+	char output[3][MAXLINE];
+
+	int i =0;
+	int j =0;
+	int index=0;
+
+	while(i<strlen(buf)){
+
+		if(index!=2&&buf[i]==' '){
+			index++;
+			j=0;
+		}
+
+		output[index][j]=buf[i];
+		i++;
+		j++;
+	}
+
+	//construct output protocol
+	strcat(buffer,"MSG ");
+	strcat(buffer,output[1]);
+	strcat(buffer," ");
+	strcat(buffer,username);
+	strcat(buffer," ");
+	strcat(buffer,output[2]);
+	strcat(buffer," \r\n\r\n");
+
+	write(clientfd,buffer,sizeof(buffer));
+
+
+}
+
 void Select(int n,fd_set *set){
 	if(select(n,set,NULL,NULL,NULL)<0)
 		fprintf(stderr,"Error on select\n");	
@@ -239,7 +328,7 @@ void helpCommand(){
 	fprintf(stdout,"Client Commands:\n" );
 	color("white",1);
 	fprintf(stdout,
-	"	/time		Show how long have been connected to the server.\n \
+	"/time		Show how long have been connected to the server.\n \
 	/logout		Log out from the server.				\n \
 	/help		List all the commands accepted by the program.			\n \
 	/listu		List all the user currently on the server.	\n \
@@ -280,72 +369,4 @@ void errorPrint(){
 	fprintf(stderr, "error: " );
 	color("white",2);
 
-}
-
-void listuHandler(){
-	char buffer[1024];
-
-	write(clientfd,"LISTU \r\n\r\n",10);
-	read(clientfd,&buffer,sizeof(buffer));
-	if(!strncmp(buffer,"UTSIL \r\n\r\n",10)){
-		int i;
-		for(i=6;i<strlen(buffer);i++){
-			fprintf(stdout, "%c",buffer[i]);
-		}
-	}
-}
-
-void logoutHandler(){
-	char buffer[50];
-
-	write(clientfd,"BYE \r\n\r\n",8);
-	read(clientfd,&buffer,sizeof(buffer));
-	if(!strncmp(buffer,"BYE \r\n\r\n",8)){
-		Close(clientfd);
-		exit(EXIT_SUCCESS);
-	}
-
-}
-void timeHandler(){
-	char buffer[50];
-	char temp[3][50];
-	char* token;
-	int index =0;
-	int hour,minute,second;
-
-	write(clientfd,"TIME \r\n\r\n",9);
-	read(clientfd,&buffer,sizeof(buffer));
-
-	token = strtok(buffer," ");
-
-	while(token!=NULL){
-		strcpy(temp[index],token);
-		token = strtok(NULL," ");
-		index++;
-	}
-
-	int timeInSec=stringToInt(temp[1]);
-
-	hour=timeInSec/3600;
-	minute=timeInSec/60;
-	second=timeInSec%60;
-
-	color("blue",1);
-	fprintf(stdout, "Connected for ");
-	color("white",1);
-	fprintf(stdout, "%d hour(s) %d minute(s) and %d seconds(s)\n",
-						hour,minute,second );
-}
-
-int stringToInt(char* str){
-	int result=0;
-	int i;
-	int stringLen = strlen(str);
-
-	for(i=0; i<stringLen; i++){
-
-	result = result * 10 + ( str[i] - '0' );
-
-	}
-	return result;
 }
