@@ -18,27 +18,35 @@
 
 #define _GUN_SOURCE
 #define MAXLINE 1024
+#define nameTaken = 0;
+#define notAvailable = 1;
+#define badPassword = 2;
+#define serverError = 100;
 
-
-typedef struct User{
+struct User{
 	time_t loginTime;
 	int clientSock;
-	char name[20];
+	char name[50];
 	struct in_addr addr;
 	struct User *next;
-}userHead;
+};
+typedef struct User User;
 
-typedef struct ThreadList{
-	pthread_t tid;
-	struct ThreadList *next;
-}threadHead;
-
+struct accountList{
+	char name[50];
+	char pwd[50];
+	struct accountList *next;
+};
+typedef struct accountList accountList;
 /*global variables*/
 int verbose = 0;
 int userCount = 0;
 char *welcomeMessage;
+User *userHead = NULL;
+accountList *accHead = NULL;
 
 int main (int argc, char ** argv){
+
 	/*set debug color*/
 	color("red",2);
 	color("green",1);
@@ -46,6 +54,7 @@ int main (int argc, char ** argv){
 
 	time_t current_time = time(0);
 	getTime(current_time);
+
 	/*check for arguments*/
 	if(argc < 3){
 		fprintf(stderr,"Missing argument\n");
@@ -53,6 +62,8 @@ int main (int argc, char ** argv){
 		}
 
 	welcomeMessage = argv[2];
+
+	/*initilize account link list*/
 
 	/*check for optional argument*/
 	int opt = 0;
@@ -110,28 +121,33 @@ void *loginThread(void *connfd){
 	}
 
 	Read(*cfd,buf,MAXLINE);
-	char name1[20];
+	char name1[50];
     char *token;
     token = strtok(buf, " ");
 	if(!strcmp(token,"IAM")){
 	     token = strtok(NULL, " ");
 		 strcpy(name1,token);
 		 token = strtok(NULL, " ");
-	 if(strcmp(token,"\r\n\r\n")){
-		 /*login fail*/
-		 log=0;
-	 }
+		 if(strcmp(token,"\r\n\r\n")){
+			 /*login fail*/
+			 log=0;
+		 }
 	 }else{
 		 log=0;
 		 /*login fail*/
 	 }
+	 /*check if user already login in*/
+	 if(!checkLogin(name1)){
+		 handleError(nameTaken,cfd);
+		 log = 0;
+	 }
 
    if(log){
 	   printf("login sucess! %s\n",name1);
-	   char msg[50];
+	   char msg[60];
 	   strcpy(msg,"HI ");
 	   strcat(msg,name1);
-
+	   strcat(msg," \r\n\r\n");
 	   write(*cfd,msg,50);
    }else
    		printf("login fail!\n");
@@ -140,7 +156,29 @@ void *loginThread(void *connfd){
 
 	return NULL;
 }
+void handleError(int error_code,int *fd){
+	if(error_code==nameTaken){
+		write(*fd,"ERR 00 USER NAME TAKEN \r\n\r\n");
+	}else if(error_code==notAvailable){
 
+	}else if(error_code==badPassword){
+
+	}else{
+
+	}
+
+}
+int checkLogin(char *name){
+	/*if user already login in, return 0*/
+	int currentlyIn = 1;
+	User *temp = userHead
+	while(temp!=NULL){
+		if(!strcmp(temp->name,name))
+			currentlyIn = 0;
+		temp = temp->next;
+	}
+	return currentlyIn;
+}
 
 void stdinCommand(){
 	char buf[MAXLINE];

@@ -1,6 +1,4 @@
 
-
-
 int open_clientfd(char * hostname, char * port);
 
 int Getaddrinfo(const char* host,const char*service,const struct addrinfo *hints, struct addrinfo **result);
@@ -58,7 +56,9 @@ void stdinCommand();
 /*helper for client command*/
 void clientCommand(int listenfd);
 
-
+void handleError(int error_code,int *fd);
 void getTime(time_t current_time);
 
 ssize_t Read(int fd, void*buf,size_t count);
+
+int checkLogin(char *name);
