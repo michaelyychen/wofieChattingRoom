@@ -26,26 +26,35 @@ typedef struct User{
 	char name[20];
 	struct in_addr addr;
 	struct User *next;
-}UserHead;
+}userHead;
 
 typedef struct ThreadList{
 	pthread_t tid;
 	struct ThreadList *next;
 }threadHead;
 
+/*global variables*/
+int verbose = 0;
+int userCount = 0;
+char *welcomeMessage;
+
 int main (int argc, char ** argv){
-	Color("red",2);
-	Color("green",1);
+	/*set debug color*/
+	color("red",2);
+	color("green",1);
 	int listenfd;
 
 	time_t current_time = time(0);
 	getTime(current_time);
-
+	/*check for arguments*/
 	if(argc < 3){
 		fprintf(stderr,"Missing argument\n");
 		exit(0);
 		}
 
+	welcomeMessage = argv[2];
+
+	/*check for optional argument*/
 	int opt = 0;
 	while((opt = getopt(argc,argv,"hv")) != -1){
 		if(opt == 'h'){
@@ -53,7 +62,7 @@ int main (int argc, char ** argv){
 			exit(EXIT_SUCCESS);
 		}
 		else if(opt == 'v'){
-
+			verbose = 1;
 		}
 
 	}
@@ -63,9 +72,7 @@ int main (int argc, char ** argv){
 		exit(0);
 	}
 
-
 	fprintf(stdout,"Currently listening on port %s\n",argv[1]);
-
 
 	/*for multiIndexing*/
 	fd_set read_set, ready_set;
@@ -84,12 +91,53 @@ int main (int argc, char ** argv){
 			clientCommand(listenfd);
 	}
 
-
 	exit(0);
 }
 
-void *loginThread(void *vargp){
-	printf("thread ok!\n");
+void *loginThread(void *connfd){
+	printf("login thread\n");
+	int log = 1;
+	/*read from client*/
+	int *cfd = connfd;
+	char buf[MAXLINE];
+	Read(*cfd,buf,MAXLINE);
+	/*compare protocol*/
+	if(!strncmp(buf,"WOLFIE \r\n\r\n",11)){
+		write(*cfd,"EIFLOW \r\n\r\n",11);
+	}else{
+		/*login fail*/
+		log =0;
+	}
+
+	Read(*cfd,buf,MAXLINE);
+	char name1[20];
+    char *token;
+    token = strtok(buf, " ");
+	if(!strcmp(token,"IAM")){
+	     token = strtok(NULL, " ");
+		 strcpy(name1,token);
+		 token = strtok(NULL, " ");
+	 if(strcmp(token,"\r\n\r\n")){
+		 /*login fail*/
+		 log=0;
+	 }
+	 }else{
+		 log=0;
+		 /*login fail*/
+	 }
+
+   if(log){
+	   printf("login sucess! %s\n",name1);
+	   char msg[50];
+	   strcpy(msg,"HI ");
+	   strcat(msg,name1);
+
+	   write(*cfd,msg,50);
+   }else
+   		printf("login fail!\n");
+
+
+
 	return NULL;
 }
 
@@ -102,24 +150,32 @@ void stdinCommand(){
 }
 
 void clientCommand(int listenfd){
-	/*spawn a login thread*/
 
+/*input from listenfd, accept input*/
 	int connfd;
 	struct sockaddr_storage clientaddr;
 	socklen_t clientlen = sizeof(struct sockaddr_storage);
 
 	connfd = Accept(listenfd, (struct sockaddr*)&clientaddr,&clientlen);
+
 	pthread_t tid;
-	if(pthread_create(&tid,NULL,loginThread,NULL)){
+
+	/*spawn a login thread*/
+	if(pthread_create(&tid,NULL,loginThread,&connfd)){
 		fprintf(stderr,"Error on create thread\n");
 	}
+	/*wait for login thread to determine*/
 	Pthread_join(tid,NULL);
+
 	fprintf(stdout,"connected address is : %d \n",
 		((struct sockaddr_in*)&clientaddr)->sin_addr.s_addr);
+
+
 	if(connfd>0){
 	 fprintf(stdout,"connected!!!!!!!!\n");
 	 exit(0);
 	 }
+
 
 
 }
@@ -221,7 +277,12 @@ void HELP(){
 	/shutdown			Close all socket, files and free heap memory then terminate\n");
 }
 
-
+ssize_t Read(int fd, void *buf,size_t count){
+	ssize_t result = read(fd,buf,count);
+	if(result == -1)
+		printf("Error on read: %s\n",strerror(errno));
+	return result;
+}
 
 int Pthread_join(pthread_t tid, void **thread_return){
 	int result = pthread_join(tid,thread_return);
@@ -240,7 +301,7 @@ int Pthread_detach(pthread_t tid){
 	return result;
 }
 
-void Color(char* color,int fd){
+void color(char* color,int fd){
 
 	char cc = 0x1B;
 	char bb = 0x5B;
