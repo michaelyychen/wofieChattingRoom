@@ -100,10 +100,13 @@ int login(){
 	read(clientfd,&buffer,11);
 
 	if(!strncmp(buffer,"EIFLOW \r\n\r\n",11)){
-		write(clientfd,"IAM ",4);
-		write(clientfd,&username,sizeof(username));
-		write(clientfd," \r\n\r\n",5);
 
+		memset(&buffer,0,sizeof(buffer));
+		strcat(buffer,"IAM ");
+		strcat(buffer,username);
+		strcat(buffer," \r\n\r\n");
+		//write(clientfd,"IAM abcd \r\n\r\n",13);
+		write(clientfd,&buffer,sizeof(buffer));
 		read(clientfd,&buffer,sizeof(buffer));
 
 
@@ -143,7 +146,7 @@ void stdinCommand(){
 	}else if(!strcmp(buf,"/time\n")){
 		write(clientfd,"TIME \r\n\r\n",9);
 	}else if(!strncmp(buf,"/chat",5)){
-		startChatHandler(&buf);
+		startChatHandler(buf);
 	}
 
 
@@ -165,7 +168,7 @@ void serverCommand(int clientfd){
 			fprintf(stdout, "%c",buffer[i]);
 		}
 	}else if(!strncmp(buffer,"EMIT",4)){
-		timeHandler(&buffer);
+		timeHandler(buffer);
 	}else if(!strncmp(buffer,"MSG",3)){
 
 	}

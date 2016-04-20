@@ -131,7 +131,7 @@ void *loginThread(void *connfd){
 	   char msg[50];
 	   strcpy(msg,"HI ");
 	   strcat(msg,name1);
-
+	   strcat(msg," \r\n\r\n");
 	   write(*cfd,msg,50);
    }else
    		printf("login fail!\n");
