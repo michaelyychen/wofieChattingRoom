@@ -18,11 +18,15 @@ void startChat();
 //positive = login success o.w. failed
 int login();
 
-void timeHandler();
+void timeHandler(char* buf);
 
 void logoutHandler();
 
 void listuHandler();
+
+void startChatHandler(char* cmd);
+
+void openChatHandler(char*str);
 
 int stringToInt(char*str);
 /*
