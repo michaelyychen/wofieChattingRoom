@@ -62,3 +62,5 @@ void clientCommand(int listenfd);
 
 
 void getTime(time_t current_time);
+
+ssize_t Read(int fd, void*buf,size_t count);
