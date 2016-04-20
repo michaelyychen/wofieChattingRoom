@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <sys/un.h>
 #include <sys/select.h>
 #include "myHeader.h"
 
@@ -75,8 +76,12 @@ int main (int argc, char ** argv) {
 		ready_set = read_set;
 		Select(clientfd+1,&ready_set);
 		/*check for input from stdin*/
-		if(FD_ISSET(STDIN_FILENO,&ready_set))
+		if(FD_ISSET(STDIN_FILENO,&ready_set)){
 			stdinCommand();
+
+		}
+
+			
 		if(FD_ISSET(clientfd,&ready_set))
 			serverCommand(clientfd);
 		
@@ -170,7 +175,7 @@ void serverCommand(int clientfd){
 	}else if(!strncmp(buffer,"EMIT",4)){
 		timeHandler(buffer);
 	}else if(!strncmp(buffer,"MSG",3)){
-
+		openChatHandler(buffer);
 	}
 
 }	
@@ -304,6 +309,8 @@ void startChatHandler(char*buf){
 
 	write(clientfd,buffer,sizeof(buffer));
 
+}
+void openChatHandler(char*buf){
 
 }
 

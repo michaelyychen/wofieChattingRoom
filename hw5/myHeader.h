@@ -28,6 +28,8 @@ void listuHandler();
 
 void startChatHandler(char* cmd);
 
+void openChatHandler(char*str);
+
 int stringToInt(char*str);
 /*
 hua li de fen ge xian
