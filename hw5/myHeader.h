@@ -73,4 +73,4 @@ int checkLogin(char *name);
 
 void users();
 void shutDown();
-void parseArg(int fd);
+void parseArg(int fd,char arguments[10][1024]);

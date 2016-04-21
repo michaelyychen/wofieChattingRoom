@@ -289,7 +289,7 @@ void clientCommand(int listenfd){
 
 	if(connfd>0){
 	 fprintf(stdout,"connected!!!!!!!!\n");
-	 exit(0);
+
 	 }
 
 }

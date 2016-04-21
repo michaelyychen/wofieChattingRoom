@@ -22,7 +22,8 @@ struct args{
 	struct args *next;
 };
 typedef struct args args;
-args head;
+
+args *head = NULL;
 char cc = 0x1B;
 char bb = 0x5B;
 char username[20];
@@ -99,7 +100,7 @@ int main (int argc, char ** argv) {
 
 //positive = login success o.w. failed
 int login(){
-	char buffer[50];
+	char buffer[MAXLINE];
 	char nameBuffer[20];		//HI_<name>_\r\n\r\n
 
 	memset(nameBuffer,0,sizeof(nameBuffer));
@@ -120,19 +121,17 @@ int login(){
 		//write(clientfd,"IAM abcd \r\n\r\n",13);
 		write(clientfd,&buffer,sizeof(buffer));
 		//read(clientfd,&buffer,sizeof(buffer));
-		args *temp = &head;
-		parseArg(clientfd);
-		memset(&buffer,0,sizeof(buffer));
-		strcpy(buffer,temp->arg);
-		temp = temp->next;
+		char arguments[10][1024];
+		parseArg(clientfd,arguments);
 
-		if(!strcmp(buffer,nameBuffer)){
+		if(!strcmp(arguments[0],nameBuffer)){
 			//login sucess, print MOTD <message>
-			memset(&buffer,0,sizeof(buffer));
-			strcpy(buffer,temp->arg);
-			color("green",1);
-			fprintf(stdout, "%s\n",buffer );
-			color("white",1);
+
+			//color("green",1);
+			printf("afdsadfasf\n");
+			write(1,arguments[1],100);
+			//printf("%s\n",arguments[1]);
+			//color("white",1);
 
 			return 1;
 		}else{
@@ -151,25 +150,44 @@ int login(){
 
 }
 
-void parseArg(int fd){
-	args *temp;
-	char *buf = calloc(1,MAXLINE);
-	if(buf!=NULL){
-		read(fd,buf,MAXLINE);
-		char *tempC = strtok(buf,"\r\n\r\n");
-		strcpy(head.arg,tempC);
-		strcat(head.arg,"\r\n\r\n");
-		temp = &head;
-		while((tempC = strtok(NULL,"\r\n\r\n"))!=NULL){
-			args Next;
-			strcpy(Next.arg,tempC);
-			strcat(Next.arg,"\r\n\r\n");
-			temp->next = &Next;
-			temp = temp->next;
-		}
+void parseArg(int fd,char arguments[10][1024]){
+	/*
+	args *temp = malloc(sizeof(args));
+	head = temp;
+	char buf[MAXLINE];
 
-	}else
-		printf("Error in parseArg while calloc\n");
+	read(fd,buf,MAXLINE);
+	char *tempC = strtok(buf,"\r\n\r\n");
+	strcpy(temp->arg,tempC);
+	strcat(temp->arg,"\r\n\r\n");
+	printf("%s\n",tempC);
+
+	while((tempC = strtok(NULL,"\r\n\r\n"))!=NULL){
+
+		printf("aaa\n");
+		args *Next = malloc(sizeof(args));
+
+		strcpy(Next->arg,tempC);
+		strcat(Next->arg,"\r\n\r\n");
+
+		temp->next = Next;
+		temp = temp->next;
+	}
+	*/
+
+	char buf[MAXLINE],*temp;
+	read(fd,buf,MAXLINE);
+	temp = strtok(buf,"\r\n\r\n");
+	int i = 0;
+	strcpy(arguments[i],temp);
+	strcat(arguments[i],"\r\n\r\n");
+		printf("%s\n",temp);
+	while((temp=strtok(NULL,"\r\n\r\n"))!=NULL){
+		i++;
+
+		strcpy(arguments[i],temp);
+		strcat(arguments[i],"\r\n\r\n");
+	}
 
 }
 void stdinCommand(){
