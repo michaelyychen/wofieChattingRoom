@@ -17,6 +17,12 @@
 
 #define MAXLINE 1024
 
+struct args{
+	char arg[MAXLINE];
+	struct args *next;
+};
+typedef struct args args;
+args head;
 char cc = 0x1B;
 char bb = 0x5B;
 char username[20];
@@ -37,7 +43,7 @@ int main (int argc, char ** argv) {
 		else if(opt == 'v'){
 
 		}
-			
+
 	}
 
 	if(argc<4){
@@ -58,20 +64,20 @@ int main (int argc, char ** argv) {
 
 	}
 
-/*ready to login
+
 	if(login()<0){
 		errorPrint();
 		fprintf(stderr, "Login response failed\n" );
 		Close(clientfd);
 		exit(0);
-	}	
-for multiIndexing*/
+	}
+
 	fd_set read_set, ready_set;
 	FD_ZERO(&read_set);
 	FD_SET(STDIN_FILENO,&read_set);
 	FD_SET(clientfd,&read_set);
 
-	/*loop to see where input is from*/	
+	/*loop to see where input is from*/
 	while(1){
 		ready_set = read_set;
 		Select(clientfd+1,&ready_set);
@@ -81,12 +87,12 @@ for multiIndexing*/
 
 		}
 
-			
+
 		if(FD_ISSET(clientfd,&ready_set))
 			serverCommand(clientfd);
-		
+
 	}
-	
+
 	Close(clientfd);
 	exit(0);
 }
@@ -113,14 +119,19 @@ int login(){
 		strcat(buffer," \r\n\r\n");
 		//write(clientfd,"IAM abcd \r\n\r\n",13);
 		write(clientfd,&buffer,sizeof(buffer));
-		read(clientfd,&buffer,sizeof(buffer));
-
+		//read(clientfd,&buffer,sizeof(buffer));
+		args *temp = &head;
+		parseArg(clientfd);
+		memset(&buffer,0,sizeof(buffer));
+		strcpy(buffer,temp->arg);
+		temp = temp->next;
 
 		if(!strcmp(buffer,nameBuffer)){
 			//login sucess, print MOTD <message>
-			read(clientfd,&buffer,sizeof(buffer));
+			memset(&buffer,0,sizeof(buffer));
+			strcpy(buffer,temp->arg);
 			color("green",1);
-			fprintf(stdout, "%s\n",buffer );	
+			fprintf(stdout, "%s\n",buffer );
 			color("white",1);
 
 			return 1;
@@ -131,12 +142,34 @@ int login(){
 				write(clientfd,"BYE \r\n\r\n",8);
 			}
 
-			return -1;	
+			return -1;
 		}
 
 	}else{
-		return -1;	
+		return -1;
 	}
+
+}
+
+void parseArg(int fd){
+	args *temp;
+	char *buf = calloc(1,MAXLINE);
+	if(buf!=NULL){
+		read(fd,buf,MAXLINE);
+		char *tempC = strtok(buf,"\r\n\r\n");
+		strcpy(head.arg,tempC);
+		strcat(head.arg,"\r\n\r\n");
+		temp = &head;
+		while((tempC = strtok(NULL,"\r\n\r\n"))!=NULL){
+			args Next;
+			strcpy(Next.arg,tempC);
+			strcat(Next.arg,"\r\n\r\n");
+			temp->next = &Next;
+			temp = temp->next;
+		}
+
+	}else
+		printf("Error in parseArg while calloc\n");
 
 }
 void stdinCommand(){
@@ -176,7 +209,7 @@ void serverCommand(int clientfd){
 		openChatHandler(buffer);
 	}
 
-}	
+}
 
 int open_clientfd(char * hostname, char * port){
 
@@ -357,15 +390,15 @@ void openChatHandler(char*buf){
 	  pid = fork();
 
 	  if(pid==0){
-	  		execv("/usr/bin/xterm", arguments);	
+	  		execv("/usr/bin/xterm", arguments);
 	  }else{
 	  	if(waitpid(-1,&status,0) >= 0){
 
 
 	  	}else{
-		
+
 		fprintf(stderr,"Child terminated abnormally with error:%s\n",strerror(errno));
-					
+
 	  	}
 
 	  }
@@ -375,7 +408,7 @@ void openChatHandler(char*buf){
 
 void Select(int n,fd_set *set){
 	if(select(n,set,NULL,NULL,NULL)<0)
-		fprintf(stderr,"Error on select\n");	
+		fprintf(stderr,"Error on select\n");
 }
 
 void HELP(){

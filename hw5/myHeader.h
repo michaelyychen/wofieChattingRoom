@@ -51,10 +51,11 @@ void color(char*color,int fd);
 int Accept(int socket, struct sockaddr *addr, socklen_t *socklen);
 int Pthread_join(pthread_t tid, void **thread_return);
 int Pthread_detach(pthread_t tid);
-
+int writeV(int fd, char *s,int byte);
 /*thread functions*/
 void *loginThread(void *vargp);
 
+void addUser(char *name, void *pair);
 
 /*helper for stdin command*/
 void stdinCommand();
@@ -62,9 +63,14 @@ void stdinCommand();
 /*helper for client command*/
 void clientCommand(int listenfd);
 
-void handleError(int error_code,int *fd);
+void handleError(int error_code,int fd);
+
 void getTime(time_t current_time);
 
 ssize_t Read(int fd, void*buf,size_t count);
 
 int checkLogin(char *name);
+
+void users();
+void shutDown();
+void parseArg(int fd);

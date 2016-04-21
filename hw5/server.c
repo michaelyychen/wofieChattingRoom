@@ -26,22 +26,29 @@
 struct User{
 	time_t loginTime;
 	int clientSock;
-	char name[50];
+	char name[1000];
 	struct in_addr addr;
 	struct User *next;
 };
 typedef struct User User;
 
 struct accountList{
-	char name[50];
-	char pwd[50];
+	char name[1000];
+	char pwd[1000];
 	struct accountList *next;
 };
 typedef struct accountList accountList;
+
+struct communicatePair{
+	int fd;
+	struct in_addr addr;
+};
+typedef struct communicatePair communicatePair;
 /*global variables*/
 int verbose = 0;
 int userCount = 0;
 char *welcomeMessage;
+char port[20];
 User *userHead = NULL;
 accountList *accHead = NULL;
 
@@ -62,7 +69,7 @@ int main (int argc, char ** argv){
 		}
 
 	welcomeMessage = argv[2];
-
+	strcpy(port,argv[1]);
 	/*initilize account link list*/
 
 	/*check for optional argument*/
@@ -78,7 +85,7 @@ int main (int argc, char ** argv){
 
 	}
 
-	if((listenfd = open_listenfd(argv[1])) < 0){
+	if((listenfd = open_listenfd(port)) < 0){
 		fprintf(stderr,"Open listen fd failed\n");
 		exit(0);
 	}
@@ -105,22 +112,22 @@ int main (int argc, char ** argv){
 	exit(0);
 }
 
-void *loginThread(void *connfd){
-	printf("login thread\n");
+void *loginThread(void *Cpair){
+	//printf("login thread\n");
 	int log = 1;
 	/*read from client*/
-	int *cfd = connfd;
+	communicatePair *pair = Cpair;
 	char buf[MAXLINE];
-	Read(*cfd,buf,MAXLINE);
+	Read(pair->fd,buf,MAXLINE);
 	/*compare protocol*/
 	if(!strncmp(buf,"WOLFIE \r\n\r\n",11)){
-		write(*cfd,"EIFLOW \r\n\r\n",11);
+		writeV(pair->fd,"EIFLOW \r\n\r\n",11);
 	}else{
 		/*login fail*/
 		log =0;
 	}
 
-	Read(*cfd,buf,MAXLINE);
+	Read(pair->fd,buf,MAXLINE);
 	char name1[50];
     char *token;
     token = strtok(buf, " ");
@@ -138,27 +145,61 @@ void *loginThread(void *connfd){
 	 }
 	 /*check if user already login in*/
 	 if(!checkLogin(name1)){
-		 handleError(nameTaken,cfd);
+		 handleError(nameTaken,pair->fd);
 		 log = 0;
 	 }
 
    if(log){
 	   printf("login sucess! %s\n",name1);
-	   char msg[60];
+	   char msg[MAXLINE];
 	   strcpy(msg,"HI ");
 	   strcat(msg,name1);
 	   strcat(msg," \r\n\r\n");
-	   write(*cfd,msg,50);
+	   writeV(pair->fd,msg,(8+strlen(name1)));
+	   addUser(name1,(void*)pair);
+	   strcpy(msg,"MOTD ");
+	   strcat(msg,welcomeMessage);
+	   strcat(msg," \r\n\r\n");
+	   writeV(pair->fd,msg,(strlen(welcomeMessage)+10));
+
    }else
    		printf("login fail!\n");
 
-
-
 	return NULL;
 }
-void handleError(int error_code,int *fd){
+
+void addUser(char *name, void *pair){
+	/*find last user*/
+	User *temp = userHead;
+	if(temp != NULL){
+		while(temp->next!=NULL)
+			temp = temp->next;
+	}
+	communicatePair *p = pair;
+	User newUser;
+	strcpy(newUser.name,name);
+	newUser.clientSock = p->fd;
+	newUser.addr = p->addr;
+	newUser.next = NULL;
+	newUser.loginTime = time(0);
+
+	if(temp != NULL)
+		temp->next = &newUser;
+	else
+		temp = &newUser;
+}
+
+void handleError(int error_code,int fd){
 	if(error_code==nameTaken){
-		write(*fd,"ERR 00 USER NAME TAKEN \r\n\r\n",30);
+		writeV(fd,"ERR 00 USER NAME TAKEN \r\n\r\n",30);
+		writeV(fd,"BYE \r\n\r\n",10);
+		/*read bye from client*/
+		char *temp = malloc(8);
+		Read(fd,temp,8);
+		if(!strcmp(temp,"BYE \r\n\r\n")){
+			Close(fd);
+		}
+
 	}else if(error_code==notAvailable){
 
 	}else if(error_code==badPassword){
@@ -168,6 +209,24 @@ void handleError(int error_code,int *fd){
 	}
 
 }
+int writeV(int fd, char *s, int byte){
+	int result = write(fd,s,byte);
+	if(verbose)
+		printf("%s\n",s);
+	if(result == -1){
+		fprintf(stderr,"Error on writing to FD: %d\n Error: %s\n",fd,strerror(errno));
+	}
+	return result;
+}
+
+int Close(int fd){
+	int result;
+	if((result = close(fd))== -1)
+		fprintf(stderr,"Error on closing file, file descriptor: %d\n	\
+		Error: %s\n",fd,strerror(errno));
+	return result;
+}
+
 int checkLogin(char *name){
 	/*if user already login in, return 0*/
 	int currentlyIn = 1;
@@ -182,11 +241,26 @@ int checkLogin(char *name){
 
 void stdinCommand(){
 	char buf[MAXLINE];
-	if(!fgets(buf,MAXLINE,stdin))
-		exit(0);
-	printf("%s\n",buf);
-}
+	if(scanf("%s",buf)<0)
+		fprintf(stderr,"Error reading standard input\n");
 
+	if(!strcmp(buf,"/users")){
+		users();
+		printf("users\n");
+	}else if(!strcmp(buf,"/help")){
+		HELP();
+		printf("call help\n");
+	}else if(!strcmp(buf,"shutdown")){
+		shutDown();
+		printf("shutdown\n");
+	}
+}
+void users(){
+
+}
+void shutDown(){
+
+}
 void clientCommand(int listenfd){
 
 /*input from listenfd, accept input*/
@@ -199,7 +273,11 @@ void clientCommand(int listenfd){
 	pthread_t tid;
 
 	/*spawn a login thread*/
-	if(pthread_create(&tid,NULL,loginThread,&connfd)){
+	communicatePair pair;
+	pair.fd = connfd;
+	pair.addr = ((struct sockaddr_in*)&clientaddr)->sin_addr;
+	//printf("fd: %d addr: %d\n",pair.fd,pair.addr.s_addr);
+	if(pthread_create(&tid,NULL,loginThread,&pair)){
 		fprintf(stderr,"Error on create thread\n");
 	}
 	/*wait for login thread to determine*/
@@ -213,8 +291,6 @@ void clientCommand(int listenfd){
 	 fprintf(stdout,"connected!!!!!!!!\n");
 	 exit(0);
 	 }
-
-
 
 }
 
@@ -294,16 +370,6 @@ int Getaddrinfo(const char* host,
 	return resultt;
 
 }
-
-int Close(int clientfd){
-
-	int result;
-	result = close(clientfd);
-	if(result < 0)
-		fprintf(stderr,"Close with error: %s\n",strerror(errno));
-	return result;
-}
-
 
 void HELP(){
 	fprintf(stdout,"Client Usage:\n \
