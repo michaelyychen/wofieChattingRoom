@@ -58,14 +58,14 @@ int main (int argc, char ** argv) {
 
 	}
 
-/*ready to login*/
+/*ready to login
 	if(login()<0){
 		errorPrint();
 		fprintf(stderr, "Login response failed\n" );
 		Close(clientfd);
 		exit(0);
 	}	
-/*for multiIndexing*/
+for multiIndexing*/
 	fd_set read_set, ready_set;
 	FD_ZERO(&read_set);
 	FD_SET(STDIN_FILENO,&read_set);
@@ -96,6 +96,7 @@ int login(){
 	char buffer[50];
 	char nameBuffer[20];		//HI_<name>_\r\n\r\n
 
+	memset(nameBuffer,0,sizeof(nameBuffer));
 	strcat(nameBuffer,"HI ");
 	strcat(nameBuffer,username);
 	strcat(nameBuffer," \r\n\r\n");
@@ -159,7 +160,7 @@ void stdinCommand(){
 
 void serverCommand(int clientfd){
 	char buffer[50];
-
+	memset(buffer,0,sizeof(buffer));
 	read(clientfd,&buffer,sizeof(buffer));
 
 	//handle shut down server command
@@ -168,10 +169,7 @@ void serverCommand(int clientfd){
 		exit(EXIT_SUCCESS);
 	}
 	else if(!strncmp(buffer,"UTSIL",5)){
-		int i;
-		for(i=6;i<strlen(buffer);i++){
-			fprintf(stdout, "%c",buffer[i]);
-		}
+		listuHandler(buffer);
 	}else if(!strncmp(buffer,"EMIT",4)){
 		timeHandler(buffer);
 	}else if(!strncmp(buffer,"MSG",3)){
@@ -253,7 +251,7 @@ void timeHandler(char* buf){
 	int timeInSec=stringToInt(temp[1]);
 
 	hour=timeInSec/3600;
-	minute=timeInSec/60;
+	minute=(timeInSec%3600)/60;
 	second=timeInSec%60;
 
 	color("blue",1);
@@ -276,6 +274,25 @@ int stringToInt(char* str){
 	return result;
 }
 
+void listuHandler(char* buffer){
+	char temp[50][50];
+	char* token;
+	int index =0;
+	int i =1;
+	token = strtok(buffer," ");
+
+	while(token!=NULL){
+		strcpy(temp[index],token);
+		token = strtok(NULL," ");
+		index++;
+	}
+
+	while(i<index){
+		fprintf(stdout, "user: %s\n",temp[i]);
+		i=i+2;
+	}
+
+}
 void startChatHandler(char*buf){
 
 	char buffer[MAXLINE];
@@ -311,6 +328,48 @@ void startChatHandler(char*buf){
 
 }
 void openChatHandler(char*buf){
+	  struct sockaddr_un addr;
+	//  char buffer[100];
+	  int socketFD;
+	  char* socket_path = "./socket";
+	  pid_t pid;
+	  int status = 0;
+	  char*  arguments[]= {
+	  	"-e",
+	  	"./chat"
+	  };
+	  if ( (socketFD = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+	    perror("socket error");
+	    exit(-1);
+	  }
+
+	  memset(&addr, 0, sizeof(addr));
+	  addr.sun_family = AF_UNIX;
+	  strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path)-1);
+
+	  unlink(socket_path);
+
+	  if (bind(socketFD, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
+	    perror("bind error");
+	    exit(-1);
+	  }
+
+	  pid = fork();
+
+	  if(pid==0){
+	  		execv("/usr/bin/xterm", arguments);	
+	  }else{
+	  	if(waitpid(-1,&status,0) >= 0){
+
+
+	  	}else{
+		
+		fprintf(stderr,"Child terminated abnormally with error:%s\n",strerror(errno));
+					
+	  	}
+
+	  }
+
 
 }
 
