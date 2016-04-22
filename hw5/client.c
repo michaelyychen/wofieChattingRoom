@@ -123,7 +123,10 @@ int login(){
 		//read(clientfd,&buffer,sizeof(buffer));
 		char arguments[10][1024];
 		parseArg(clientfd,arguments);
-
+		//read(clientfd,&buffer,sizeof(buffer));
+		//printf("%s",buffer );
+		//read(clientfd,&buffer,sizeof(buffer));
+		//printf("%s",buffer );
 		if(!strcmp(arguments[0],nameBuffer)){
 			//login sucess, print MOTD <message>
 
@@ -177,9 +180,14 @@ void parseArg(int fd,char arguments[10][1024]){
 
 	char buf[MAXLINE],*temp;
 	read(fd,buf,MAXLINE);
+<<<<<<< HEAD
 	printf("%s\n",buf);
 	char con[4] = "\r\n\r\n";
 	temp = strtok(buf,con);
+=======
+	temp = strtok(buf,"\r\n\r\n");
+
+>>>>>>> f40ac118a4379476a6a326a1d259123d26d509e1
 	int i = 0;
 	strcpy(arguments[i],temp);
 	strcat(arguments[i],con);

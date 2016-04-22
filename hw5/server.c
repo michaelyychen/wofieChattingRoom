@@ -155,13 +155,11 @@ void *loginThread(void *Cpair){
 	   strcpy(msg,"HI ");
 	   strcat(msg,name1);
 	   strcat(msg," \r\n\r\n");
-	   writeV(pair->fd,msg,(8+strlen(name1)));
-	   addUser(name1,(void*)pair);
-	   char msg2[MAXLINE];
-	   strcpy(msg2,"MOTD ");
-	   strcat(msg2,welcomeMessage);
-	   strcat(msg2," \r\n\r\n");
-	   writeV(pair->fd,msg,(strlen(welcomeMessage)+10));
+	   strcat(msg,"MOTD ");
+	   strcat(msg,welcomeMessage);
+	   strcat(msg," \r\n\r\n");
+	   writeV(pair->fd,msg,1024);
+
 
    }else
    		printf("login fail!\n");
