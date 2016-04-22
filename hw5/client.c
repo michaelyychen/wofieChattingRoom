@@ -65,14 +65,14 @@ int main (int argc, char ** argv) {
 
 	}
 
-
+	/*
 	if(login()<0){
 		errorPrint();
 		fprintf(stderr, "Login response failed\n" );
 		Close(clientfd);
 		exit(0);
 	}
-
+	*/
 	fd_set read_set, ready_set;
 	FD_ZERO(&read_set);
 	FD_SET(STDIN_FILENO,&read_set);
@@ -390,10 +390,13 @@ void openChatHandler(char*buf){
 	  char* socket_path = "./socket";
 	  pid_t pid;
 	  int status = 0;
-	  char*  arguments[]= {
-	  	"-e",
-	  	"./chat"
-	  };
+	  char*  arguments[5];
+	  arguments[0]="xterm";
+	  arguments[1]="-hold";
+	  arguments[2]="-e";
+	  arguments[3]="./chat";
+	  arguments[4]=NULL;
+	 
 	  if ( (socketFD = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
 	    perror("socket error");
 	    exit(-1);
@@ -413,9 +416,11 @@ void openChatHandler(char*buf){
 	  pid = fork();
 
 	  if(pid==0){
-	  		execv("/usr/bin/xterm", arguments);
+	  		printf("in child\n" );
+	  		execvp(arguments[0],arguments);
+	  		exit(EXIT_SUCCESS);
 	  }else{
-	  	if(waitpid(-1,&status,0) >= 0){
+	  	if(waitpid(pid,&status,0) >= 0){
 
 
 	  	}else{
