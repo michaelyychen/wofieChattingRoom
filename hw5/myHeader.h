@@ -1,4 +1,7 @@
 
+
+
+
 int open_clientfd(char * hostname, char * port);
 
 int Getaddrinfo(const char* host,const char*service,const struct addrinfo *hints, struct addrinfo **result);
@@ -55,7 +58,7 @@ int writeV(int fd, char *s,int byte);
 /*thread functions*/
 void *loginThread(void *vargp);
 
-void addUser(char *name, void *pair);
+void* addUser(char *name, void *pair);
 
 /*helper for stdin command*/
 void stdinCommand();
@@ -65,7 +68,7 @@ void clientCommand(int listenfd);
 
 void handleError(int error_code,int fd);
 
-void getTime(time_t current_time);
+int getTime(time_t current_time);
 
 ssize_t Read(int fd, void*buf,size_t count);
 
@@ -74,3 +77,9 @@ int checkLogin(char *name);
 void users();
 void shutDown();
 void parseArg(int fd,char arguments[10][1024]);
+void *talkThread(void* vargp);
+void removeUser(int fd);
+void intToS(char *buf,int t);
+/*for singals */
+void sigInt_handler(int sigID);
+void cleanUp();
