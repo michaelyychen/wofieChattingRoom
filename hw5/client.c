@@ -389,12 +389,17 @@ void openChatHandler(char*buf){
 	  char* socket_path = "./socket";
 	  pid_t pid;
 	  int status = 0;
-	  char*  arguments[5];
+	  char*  arguments[10];
 	  arguments[0]="xterm";
 	  arguments[1]="-hold";
-	  arguments[2]="-e";
-	  arguments[3]="./chat";
-	  arguments[4]=NULL;
+	  arguments[2]="-geometry";
+	  arguments[3]="45x40";
+	  arguments[4]="-T";
+	  arguments[5]="Chat Room";
+	  arguments[6]="-e";
+	  arguments[7]="./chat";
+	  arguments[8]=NULL;
+	  arguments[9]=NULL;
 	 
 	  if ( (socketFD = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
 	    perror("socket error");
@@ -416,8 +421,13 @@ void openChatHandler(char*buf){
 
 	  if(pid==0){
 	  		printf("in child\n" );
+	  		
+	  		char temp[10];
+	  		sprintf(temp,"%d",socketFD);
+	  		strcpy(arguments[8],temp);
+	  	
 	  		execvp(arguments[0],arguments);
-	  		exit(EXIT_SUCCESS);
+	  	//	exit(EXIT_SUCCESS);
 	  }else{
 	  	if(waitpid(pid,&status,0) >= 0){
 
