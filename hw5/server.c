@@ -157,9 +157,10 @@ void *loginThread(void *Cpair){
 	   strcat(msg," \r\n\r\n");
 	   writeV(pair->fd,msg,(8+strlen(name1)));
 	   addUser(name1,(void*)pair);
-	   strcpy(msg,"MOTD ");
-	   strcat(msg,welcomeMessage);
-	   strcat(msg," \r\n\r\n");
+	   char msg2[MAXLINE];
+	   strcpy(msg2,"MOTD ");
+	   strcat(msg2,welcomeMessage);
+	   strcat(msg2," \r\n\r\n");
 	   writeV(pair->fd,msg,(strlen(welcomeMessage)+10));
 
    }else

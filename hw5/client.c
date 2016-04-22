@@ -177,16 +177,19 @@ void parseArg(int fd,char arguments[10][1024]){
 
 	char buf[MAXLINE],*temp;
 	read(fd,buf,MAXLINE);
-	temp = strtok(buf,"\r\n\r\n");
+	printf("%s\n",buf);
+	char con[4] = "\r\n\r\n";
+	temp = strtok(buf,con);
 	int i = 0;
 	strcpy(arguments[i],temp);
-	strcat(arguments[i],"\r\n\r\n");
+	strcat(arguments[i],con);
 		printf("%s\n",temp);
-	while((temp=strtok(NULL,"\r\n\r\n"))!=NULL){
+	while((temp=strtok(NULL,con))!=NULL){
 		i++;
 
 		strcpy(arguments[i],temp);
-		strcat(arguments[i],"\r\n\r\n");
+
+		strcat(arguments[i],con);
 	}
 
 }
