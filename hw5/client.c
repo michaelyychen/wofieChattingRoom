@@ -118,23 +118,21 @@ int login(){
 		strcat(buffer,"IAM ");
 		strcat(buffer,username);
 		strcat(buffer," \r\n\r\n");
-		//write(clientfd,"IAM abcd \r\n\r\n",13);
+
 		write(clientfd,&buffer,sizeof(buffer));
-		//read(clientfd,&buffer,sizeof(buffer));
+
 		char arguments[10][1024];
+
 		parseArg(clientfd,arguments);
-		//read(clientfd,&buffer,sizeof(buffer));
-		//printf("%s",buffer );
-		//read(clientfd,&buffer,sizeof(buffer));
-		//printf("%s",buffer );
+
 		if(!strcmp(arguments[0],nameBuffer)){
 			//login sucess, print MOTD <message>
 
-			//color("green",1);
-			printf("afdsadfasf\n");
-			write(1,arguments[1],100);
-			//printf("%s\n",arguments[1]);
-			//color("white",1);
+			color("green",1);
+
+			printf("%s\n",arguments[1]);
+
+			color("white",1);
 
 			return 1;
 		}else{
@@ -180,21 +178,25 @@ void parseArg(int fd,char arguments[10][1024]){
 
 	char buf[MAXLINE],*temp;
 	read(fd,buf,MAXLINE);
-	temp = strtok(buf,"\r\n\r\n");
-
+	//printf("%s\n",buf);
+	char con[4] = "\r\n\r\n";
+	temp = strtok(buf,con);
 	int i = 0;
 	strcpy(arguments[i],temp);
-	strcat(arguments[i],"\r\n\r\n");
-		printf("%s\n",temp);
-	while((temp=strtok(NULL,"\r\n\r\n"))!=NULL){
+	strcat(arguments[i],con);
+		//printf("%s\n",temp);
+	while((temp=strtok(NULL,con))!=NULL){
 		i++;
 
 		strcpy(arguments[i],temp);
-		strcat(arguments[i],"\r\n\r\n");
+
+		strcat(arguments[i],con);
 	}
 
 }
+
 void stdinCommand(){
+
 	char buf[MAXLINE];
 	if(!fgets(buf,MAXLINE,stdin))
 		exit(0);
@@ -209,7 +211,6 @@ void stdinCommand(){
 	}else if(!strncmp(buf,"/chat",5)){
 		startChatHandler(buf);
 	}
-
 
 }
 
