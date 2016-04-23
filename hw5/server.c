@@ -248,8 +248,8 @@ void* talkThread(void* vargp){
 
 		}else if(!strncmp(buf,"MSG",3)){
 
-			char nameTo[1000],nameFrom[1000],char useless[10];
-			useless = strtok(buf," ");
+			char *nameTo,*nameFrom;
+			strtok(buf," ");
 			nameTo = strtok(NULL," ");
 			nameFrom = strtok(NULL," ");
 			/*check if both users exist*/
@@ -268,14 +268,15 @@ void* talkThread(void* vargp){
 				temp = temp->next;
 			}
 
-			if(nameTo & nameFrom){
+			if(userTo & userFrom){
 				/*both users exists*/
+				//printf("%s\n",buf);
 				writeV(toFd,buf,MAXLINE);
 				writeV(fromFd,buf,MAXLINE);
 
 			}else{
 				if(userTo)
-					handleError(notAvailable,inFd);
+					handleError(notAvailable,toFd);
 				else
 					handleError(notAvailable,fromFd);
 				
@@ -315,7 +316,7 @@ void* addUser(char *name, void *pair){
 	return (void*)newUser;
 }
 void removeUser(int fd){
-	
+
 	User *temp, *prev;
 	char buf[MAXLINE];
 	char name[1000];
@@ -330,7 +331,7 @@ void removeUser(int fd){
 	if(temp == userHead)
 		userHead = NULL;
 
-	name = temp->name;
+	strcpy(name,temp->name);
 	Close(temp->clientSock);
 	prev->next = temp->next;
 	free(temp);
@@ -344,7 +345,7 @@ void removeUser(int fd){
 		writeV(temp->clientSock,buf,MAXLINE);
 		temp = temp->next;
 	}
-	\
+	
 }
 void handleError(int error_code,int fd){
 	if(error_code==nameTaken){
