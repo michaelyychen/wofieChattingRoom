@@ -27,13 +27,14 @@ int main(int argc, char *argv[]) {
   read(fd,buffer,1024);
   printf("%s\n",buffer );
 
-    int  number;
+    
 
-    while(number!=10){
-    printf("Type in a number \n");
-    scanf("%d", &number);
-    printf("The number you typed was %d\n", number);
-}
+    while(strcmp(buffer,"/close")){
+    printf("Type in a message: \n");
+    scanf("%s", buffer);
+    printf("The msg was %s\n", buffer);
+    
+    }
 
   close(fd);
   return 0;

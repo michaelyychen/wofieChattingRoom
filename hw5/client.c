@@ -427,7 +427,8 @@ void openChatHandler(char*buf){
 
 
 	  int pair[2];
-
+	  //arrow true = > incoming msg else '<' outgoing
+	  bool arrow = false;
 	  parseMSG(buf,msgTo,msgFrom,msg);
 
 	  printf("%s\n",msgTo );
@@ -436,10 +437,21 @@ void openChatHandler(char*buf){
 
 	  static const int parent = 0;
 	  static const int child = 1;
+
 	  if(socketpair(AF_UNIX,SOCK_STREAM,0,pair)<0){
 	  	fprintf(stderr, "socketpair Error\n" );
 	  }
 
+	  // if msgTo and username != < outgoing msg
+	  if(strcmp(msgTo,username)){
+	  	strcat(arguments[5],msgTo);
+	  	arrow = false;
+	  }else{
+	  	strcat(arguments[5],msgFrom);
+	  	arrow = true;
+	  }
+
+	  
 
 	  if((pid = fork())==0){
 
@@ -453,14 +465,37 @@ void openChatHandler(char*buf){
 	  		execvp(arguments[0],arguments);
 
 	  }else{
+
 	  		char buf[1024];
+	  		char temp[1024];
+	  		char responseBUf[1024];
 	  		fprintf(stdout, "in parent\n" );	
 	  		//close(pair[childsocket]);
-	  		write(pair[parent],msg,sizeof(msg));
+	  		memset(temp,0,1024);
+
+	  		if(!arrow){
+	  			strcat(temp,"<");
+	  			strcat(temp,msg);
+	  		}else{
+	  			strcat(temp,">");
+	  			strcat(temp,msg);
+	  		}
+
+	  		write(pair[parent],temp,sizeof(temp));
 	  		
 		    read(pair[parent], buf, sizeof(buf));
 
+		    memset(responseBUf,0,1024);
+		    
+		    strcat(responseBUf,"MSG ");
+		    strcat(responseBUf,msgTo);
+			strcat(responseBUf," ");
+			strcat(responseBUf,username);
+			strcat(responseBUf," ");
+		 	strcat(responseBUf,buf);
+			strcat(responseBUf," \r\n\r\n");
 
+			write(clientfd,responseBUf,sizeof(responseBUf));
 	
 
 	  }
