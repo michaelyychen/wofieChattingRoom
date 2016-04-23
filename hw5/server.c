@@ -231,10 +231,11 @@ void* talkThread(void* vargp){
 			User *temp = userHead;
 			while(temp!=NULL){
 				strcat(buf,temp->name);
-				strcat(buf," \r\n");
+				strcat(buf," \r\n ");
 				temp = temp->next;
 			}
 			strcat(buf," \r\n\r\n");
+			printf("%s",buf);
 			writeV(user->clientSock,buf,MAXLINE);
 		}
 		else if(!strcmp(buf,"BYE \r\n\r\n")){
@@ -243,15 +244,18 @@ void* talkThread(void* vargp){
 			strcpy(buf,"BYE \r\n\r\n");
 			writeV(user->clientSock,buf,MAXLINE);
 			removeUser(user->clientSock);
+			break;
 
 		}
 	}
 
 	return NULL;
 }
+
 void intToS(char *buf, int t){
 	
 }
+
 void* addUser(char *name, void *pair){
 
 	/*find last user*/
