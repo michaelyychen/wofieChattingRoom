@@ -80,6 +80,9 @@ void parseArg(int fd,char arguments[10][1024]);
 void *talkThread(void* vargp);
 void removeUser(int fd);
 void intToS(char *buf,int t);
+void accts();
+unsigned char* getHash(void *acct);
+int Open(const char* pathname, int flags, mode_t mode);
 /*for singals */
 void sigInt_handler(int sigID);
 void cleanUp();

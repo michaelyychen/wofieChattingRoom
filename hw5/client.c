@@ -31,7 +31,21 @@ char host[20];
 char port[20];
 int clientfd;
 
+void sigInt_handler(int sigID){
+	write(clientfd,"BYE \r\n\r\n",8);
+	char buf[MAXLINE];
+	read(clientfd,buf,8);
+	if(!strcmp(buf,"BYE \r\n\r\n")){
+		close(clientfd);
+		exit(EXIT_SUCCESS);
+	}else{
+		printf("Error handling signal INT");
+	}
+}
+
 int main (int argc, char ** argv) {
+
+	signal(SIGINT,sigInt_handler);
 
 	int opt = 0;
 	while((opt = getopt(argc,argv,"hcv")) != -1){
