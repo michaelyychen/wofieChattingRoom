@@ -13,6 +13,8 @@
 #include <sys/select.h>
 #include <time.h>
 #include <pthread.h>
+#include <openssl/sha.h>
+#include <openssl/rand.h>
 #include "myHeader.h"
 
 #define _GUN_SOURCE
@@ -33,7 +35,8 @@ typedef struct User User;
 
 struct accountList{
 	char name[1000];
-	char pwd[1000];
+	unsigned char pwd[SHA256_DIGEST_LENGTH];
+	unsigned char salt[5];
 	struct accountList *next;
 };
 typedef struct accountList accountList;
@@ -45,6 +48,7 @@ struct communicatePair{
 typedef struct communicatePair communicatePair;
 /*global variables*/
 int listenfd;
+int acctFd = 0;
 int verbose = 0;
 int userCount = 0;
 char *welcomeMessage;
@@ -53,6 +57,7 @@ User *userHead = NULL;
 accountList *accHead = NULL;
 
 int main (int argc, char ** argv){
+
 
 	signal(SIGINT,sigInt_handler);
 
@@ -66,7 +71,21 @@ int main (int argc, char ** argv){
 
 	welcomeMessage = argv[2];
 	strcpy(port,argv[1]);
-	/*initilize account link list*/
+	
+
+	/*check if account list if provided*/
+	if(argc >=4){
+	
+		int i = 3;
+		while(i<argc){
+			
+			if(strcmpargcv[i])
+			int temp = Open(argv[i]);
+			if()
+			i++;
+		}
+		/*initilize account link list*/
+	}
 
 	/*check for optional argument*/
 	int opt = 0;
@@ -88,7 +107,9 @@ int main (int argc, char ** argv){
 		exit(0);
 	}
 
+	color("green",1);
 	fprintf(stdout,"Currently listening on port %s\n",argv[1]);
+	color("white",1);
 
 	/*for multiIndexing*/
 	fd_set read_set, ready_set;
@@ -114,6 +135,55 @@ void sigInt_handler(int sigID){
 	shutDown();
 }
 
+int Open(const char* pathname, int flags, mode_t mode){
+	int result;
+	result = open(pathname,flags,mode);
+	if(result < 0)
+		fprintf(stderr,"Open file: %s with error: %s\n",pathname,strerror(errno));
+	return result;
+}
+
+unsigned char* getHash(void *acct){
+	char *p = "1234";
+	char *s = "1";
+	unsigned char hash[SHA256_DIGEST_LENGTH];
+	SHA256_CTX temp;
+
+	if(!SHA256_Init(&temp)){
+		color("red",2);
+		fprintf(stderr,"Error on hashing password: INIT\n");
+		color("white",2);
+	}
+	if(!SHA256_Update(&temp,p,4)){
+		color("red",2);
+		fprintf(stderr,"Error on hashing password: Update\n");
+		color("white",2);
+	}
+	if(!SHA256_Update(&temp,s,1)){
+		color("red",2);
+		fprintf(stderr,"Error on hashing password: Update with Salt\n");
+		color("white",2);
+	}
+	if(!SHA256_Final(hash,&temp)){
+		color("red",2);
+		fprintf(stderr,"Error on hashing password: Final\n");
+		color("white",2);
+	}
+	/*	
+	unsigned char test[1];
+	memset(test,0,1);
+	printf("%s\n",test);
+	
+	if(!RAND_bytes(test,5)){
+		color("red",2);
+		fprintf(stderr,"Error on generating random bytes\n");
+		color("white",2);
+	}
+	printf("%s\n",test);
+	*/
+	printf("%s\n",hash);
+	return NULL;
+}
 void *loginThread(void *Cpair){
 	printf("---------login thread-------\n");
 
@@ -231,7 +301,8 @@ void* talkThread(void* vargp){
 			User *temp = userHead;
 			while(temp!=NULL){
 				strcat(buf,temp->name);
-				strcat(buf," \r\n ");
+				if(temp->next != NULL)
+					strcat(buf," \r\n ");
 				temp = temp->next;
 			}
 			strcat(buf," \r\n\r\n");
@@ -332,6 +403,7 @@ void removeUser(int fd){
 		userHead = NULL;
 
 	strcpy(name,temp->name);
+
 	Close(temp->clientSock);
 	prev->next = temp->next;
 	free(temp);
@@ -421,12 +493,15 @@ void stdinCommand(){
 		//printf("calling help function\n");
 		HELP();
 
-	}else if(!strcmp(buf,"shutdown")){
+	}else if(!strcmp(buf,"/shutdown")){
 		//printf("calling shutdown function\n");
 		shutDown();
 
+	}else if(!strcmp(buf,"/accts")){
+		accts();
 	}
 }
+
 void users(){
 	User *temp = userHead;
 	while(temp!=NULL){
@@ -434,10 +509,20 @@ void users(){
 		temp = temp->next;
 	}
 }
+
+void accts(){
+	accountList *temp = accHead;
+	while(temp!=NULL){
+		printf("User: %s\n Password: %s\n Salt: %s\n",temp->name,temp->pwd,temp->salt);
+		temp = temp->next;
+	}
+}
+
 void shutDown(){
 	cleanUp();
 	exit(0);
 }
+
 void cleanUp(){
 	User *temp = userHead;
 	while(temp!=NULL){
