@@ -31,6 +31,7 @@ struct User{
 	struct in_addr addr;
 	struct User *next;
 };
+
 typedef struct User User;
 
 struct accountList{
@@ -39,13 +40,16 @@ struct accountList{
 	unsigned char salt[5];
 	struct accountList *next;
 };
+
 typedef struct accountList accountList;
 
 struct communicatePair{
 	int fd;
 	struct in_addr addr;
 };
+
 typedef struct communicatePair communicatePair;
+
 /*global variables*/
 int listenfd;
 int acctFd = 0;
@@ -79,13 +83,51 @@ int main (int argc, char ** argv){
 		int i = 3;
 		while(i<argc){
 			
-			if(strcmpargcv[i])
-			int temp = Open(argv[i]);
-			if()
+			int temp = Open(argv[i],O_RDWR|O_APPEND,S_IWUSR|S_IRUSR|S_IXUSR);
+			if(temp>0){
+				/*initilize account link list*/
+				printf("file exit\n");
+				struct stat st;
+				stat(argv[i],&st);
+				int size = st.st_size;
+				char buf[size], *name, *c = "\n";
+				unsigned char *pwd;
+				unsigned char *salt;
+
+				if(Read(temp,buf,size)>0){
+
+					name = strtok(buf,c);
+					pwd = (unsigned char*)strtok(NULL,c);
+					salt = (unsigned char*)strtok(NULL,c);
+
+					accountList *acct = malloc(sizeof(accountList));
+					strcpy(acct->name,name);
+					memcpy(acct->pwd,pwd,SHA256_DIGEST_LENGTH);
+					memcpy(acct->salt,salt,5);
+					accHead = acct;
+					accountList *temp = accHead;
+					temp->next = NULL;
+
+					while((name = strtok(NULL,c))!=NULL){
+						pwd = (unsigned char*)strtok(NULL,c);
+						salt = (unsigned char*)strtok(NULL,c);
+						accountList *acc = malloc(sizeof(accountList));
+						strcpy(acc->name,name);
+						memcpy(acc->pwd,pwd,SHA256_DIGEST_LENGTH);
+						memcpy(acc->salt,salt,5);
+						temp->next = acc;
+						temp = temp->next;
+						temp->next = NULL;
+
+					}
+				}
+				
+			}
+
 			i++;
 		}
-		/*initilize account link list*/
 	}
+		
 
 	/*check for optional argument*/
 	int opt = 0;
@@ -167,7 +209,7 @@ int checkPwd(char * pwd){
 	while(temp != NULL){
 		if(*temp>='0' && *temp<=9)
 			number = 1;
-		else if(*temp>='A' && *temp<="Z"))
+		else if(*temp>='A' && *temp<='Z')
 			upcase = 1;
 		else if((*temp>='!' && *temp<='/') || (*temp>=':' && *temp<='@')
 		 || (*temp>='[' && *temp<='`') || (*temp>='{' && *temp<= '~'))
@@ -182,6 +224,7 @@ int checkPwd(char * pwd){
 	return result;
 
 }
+
 int Open(const char* pathname, int flags, mode_t mode){
 	int result;
 	result = open(pathname,flags,mode);
@@ -201,12 +244,12 @@ void getHash(void *acct, char *pwd){
 		fprintf(stderr,"Error on hashing password: INIT\n");
 		color("white",2);
 	}
-	if(!SHA256_Update(&temp,pwd,strlen(pwd)){
+	if(!SHA256_Update(&temp,pwd,strlen(pwd))){
 		color("red",2);
 		fprintf(stderr,"Error on hashing password: Update\n");
 		color("white",2);
 	}
-	if(!SHA256_Update(&temp,acc->salt,strlen(acc->salt))){
+	if(!SHA256_Update(&temp,acc->salt,5)){
 		color("red",2);
 		fprintf(stderr,"Error on hashing password: Update with Salt\n");
 		color("white",2);
@@ -223,11 +266,11 @@ int compareHash(char *name, char *pwd){
 
 	accountList *acc = accHead;
 
-	if(temp==NULL)
+	if(acc==NULL)
 		return 0;
 
 	while(strcmp(acc->name,name)){
-		acc = acc>next;
+		acc = acc->next;
 		if(acc==NULL)
 			return 0;
 	}
@@ -240,12 +283,12 @@ int compareHash(char *name, char *pwd){
 		fprintf(stderr,"Error on hashing password: INIT\n");
 		color("white",2);
 	}
-	if(!SHA256_Update(&temp,pwd,strlen(pwd)){
+	if(!SHA256_Update(&temp,pwd,strlen(pwd))){
 		color("red",2);
 		fprintf(stderr,"Error on hashing password: Update\n");
 		color("white",2);
 	}
-	if(!SHA256_Update(&temp,acc->salt,strlen(acc->salt))){
+	if(!SHA256_Update(&temp,acc->salt,5)){
 		color("red",2);
 		fprintf(stderr,"Error on hashing password: Update with Salt\n");
 		color("white",2);
@@ -256,12 +299,13 @@ int compareHash(char *name, char *pwd){
 		color("white",2);
 	}
 
-	if(!strcmp(acc->pwd,compare))
+	if(!memcmp(acc->pwd,compare,SHA256_DIGEST_LENGTH))
 		return 1;
 
 	return 0;
 
 }
+
 void *loginThread(void *Cpair){
 	printf("---------login thread-------\n");
 
@@ -366,7 +410,7 @@ void* talkThread(void* vargp){
 				temp = temp/10;
 			}
 			char timeBuf[len];
-			intToS(timeBuf,result);
+			//intToS(timeBuf,result);
 			strcpy(buf,"EMIT ");
 			strcat(buf,timeBuf);
 			strcat(buf," \r\n\r\n");
@@ -462,6 +506,7 @@ void* addUser(char *name, void *pair){
 
 	return (void*)newUser;
 }
+
 void removeUser(int fd){
 
 	User *temp, *prev;
@@ -495,6 +540,7 @@ void removeUser(int fd){
 	}
 	
 }
+
 void handleError(int error_code,int fd){
 	if(error_code==nameTaken){
 		writeV(fd,"ERR 00 USER NAME TAKEN \r\n\r\nBYE \r\n\r\n",40);
@@ -515,6 +561,7 @@ void handleError(int error_code,int fd){
 	}
 
 }
+
 int writeV(int fd, char *s, int byte){
 	int result = write(fd,s,byte);
 	if(verbose){
@@ -613,6 +660,7 @@ void cleanUp(){
 	}
 	Close(listenfd);
 }
+
 void clientCommand(int listenfd){
 
 /*input from listenfd, accept input*/
@@ -677,6 +725,7 @@ int Accept(int socket, struct sockaddr *addr, socklen_t *socklen){
 	}
 	return result;
 }
+
 int open_listenfd(char * port){
 	struct addrinfo  hints, *list, *pt;
 	int listenfd;
