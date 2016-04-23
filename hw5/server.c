@@ -246,7 +246,43 @@ void* talkThread(void* vargp){
 			removeUser(user->clientSock);
 			break;
 
+		}else if(!strncmp(buf,"MSG",3)){
+
+			char nameTo[1000],nameFrom[1000],char useless[10];
+			useless = strtok(buf," ");
+			nameTo = strtok(NULL," ");
+			nameFrom = strtok(NULL," ");
+			/*check if both users exist*/
+			int userTo = 0, toFd , userFrom = 0, fromFd;
+			User *temp = userHead;
+
+			while(temp != NULL){
+				if(!strcmp(nameTo,temp->name)){
+					userTo = 1;
+					toFd = temp->clientSock;
+				}
+				if(!strcmp(nameFrom,temp->name)){
+					userFrom = 1;
+					fromFd = temp->clientSock;
+				}
+				temp = temp->next;
+			}
+
+			if(nameTo & nameFrom){
+				/*both users exists*/
+				writeV(toFd,buf,MAXLINE);
+				writeV(fromFd,buf,MAXLINE);
+
+			}else{
+				if(userTo)
+					handleError(notAvailable,inFd);
+				else
+					handleError(notAvailable,fromFd);
+				
+			}
+
 		}
+
 	}
 
 	return NULL;
@@ -279,7 +315,10 @@ void* addUser(char *name, void *pair){
 	return (void*)newUser;
 }
 void removeUser(int fd){
+	
 	User *temp, *prev;
+	char buf[MAXLINE];
+	char name[1000];
 	temp = userHead;
 	prev = temp;
 	/*find user to remove*/
@@ -291,10 +330,21 @@ void removeUser(int fd){
 	if(temp == userHead)
 		userHead = NULL;
 
+	name = temp->name;
 	Close(temp->clientSock);
 	prev->next = temp->next;
 	free(temp);
 
+	/*send uoff to all other users*/
+	strcpy(buf,"UOFF ");
+	strcat(buf,name);
+	strcat(buf," \r\n\r\n");
+	temp = userHead;
+	while(temp!=NULL){
+		writeV(temp->clientSock,buf,MAXLINE);
+		temp = temp->next;
+	}
+	\
 }
 void handleError(int error_code,int fd){
 	if(error_code==nameTaken){
@@ -307,6 +357,7 @@ void handleError(int error_code,int fd){
 		}
 		free(temp);
 	}else if(error_code==notAvailable){
+		writeV(fd,"ERR 01 USER NOT AVAILABLE \r\n\r\n",30);
 
 	}else if(error_code==badPassword){
 
@@ -390,6 +441,7 @@ void cleanUp(){
 	User *temp = userHead;
 	while(temp!=NULL){
 		User *temp2 = temp;
+		writeV(temp2->clientSock,"BYE \r\n\r\n",8);
 		Close(temp->clientSock);
 		temp = temp->next;
 		free(temp2);
