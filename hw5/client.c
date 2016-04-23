@@ -65,14 +65,14 @@ int main (int argc, char ** argv) {
 
 	}
 
-	/*
+	
 	if(login()<0){
 		errorPrint();
 		fprintf(stderr, "Login response failed\n" );
 		Close(clientfd);
 		exit(0);
 	}
-	*/
+	
 	fd_set read_set, ready_set;
 	FD_ZERO(&read_set);
 	FD_SET(STDIN_FILENO,&read_set);
@@ -137,8 +137,8 @@ int login(){
 			return 1;
 		}else{
 			//error occurs
-			read(clientfd,&buffer,sizeof(buffer));
-			if(!strncmp(buffer,"BYE \r\n\r\n",8)){
+			
+			if(!strncmp(arguments[1],"BYE \r\n\r\n",8)){
 				write(clientfd,"BYE \r\n\r\n",8);
 			}
 
@@ -343,7 +343,7 @@ void listuHandler(char* buffer){
 		index++;
 	}
 
-	while(i<index){
+	while(i<index-1){
 		fprintf(stdout, "user: %s\n",temp[i]);
 		i=i+2;
 	}
