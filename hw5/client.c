@@ -391,12 +391,10 @@ void startChatHandler(char*buf){
 
 }
 void openChatHandler(char*buf){
-	  struct sockaddr_un addr;
-	//  char buffer[100];
-	  int socketFD;
-	  char* socket_path = "./socket";
+
 	  pid_t pid;
-	  int status = 0;
+	  
+
 	  char *arguments[11];
 	  memset(arguments,0,sizeof(arguments));
 	  arguments[0]="xterm";
@@ -407,45 +405,39 @@ void openChatHandler(char*buf){
 	  arguments[5]="Chat Room";
 	  arguments[6]="-e";
 	  arguments[7]="./chat";
-	 // arguments[8]="0000000000000";
 	  arguments[9]=NULL;
-	 
-	  if ( (socketFD = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
-	    perror("socket error");
-	    exit(-1);
+
+
+	  int pair[2];
+
+
+      static const int parentsocket = 0;
+	  static const int childsocket = 1;
+	  if(socketpair(AF_UNIX,SOCK_STREAM,0,pair)<0){
+	  	fprintf(stderr, "socketpair Error\n" );
 	  }
 
-	  memset(&addr, 0, sizeof(addr));
-	  addr.sun_family = AF_UNIX;
-	  strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path)-1);
 
-	  unlink(socket_path);
+	  if((pid = fork())==0){
 
-	  if (bind(socketFD, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
-	    perror("bind error");
-	    exit(-1);
-	  }
-
-	  pid = fork();
-
-	  if(pid==0){
-	  		printf("in child socket:%d \n",socketFD );
 	  		char temp[10];
 	  		memset(temp,0,10);
-	  		sprintf(temp,"%d",socketFD);
+	  		sprintf(temp,"%d",pair[childsocket]);
 	  		arguments[8]= temp;
-	  		
+
+	  		//close(pair[parentsocket]);
+
 	  		execvp(arguments[0],arguments);
-	  	//	exit(EXIT_SUCCESS);
+
 	  }else{
-	  	if(waitpid(pid,&status,0) >= 0){
+	  	
+	  		fprintf(stdout, "in parent\n" );	
+	  		//close(pair[childsocket]);
+	  		char buf[1024];
+		    read(pair[parentsocket], buf, sizeof(buf));
+		    printf("parent received %s\n", buf);
 
-
-	  	}else{
-
-		fprintf(stderr,"Child terminated abnormally with error:%s\n",strerror(errno));
-
-	  	}
+	
 
 	  }
 

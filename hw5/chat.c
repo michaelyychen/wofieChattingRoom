@@ -16,8 +16,31 @@
 #include "myHeader.h"
 
 #define MAXLINE 1024
+int socketFD;
 
-int main (int argc, char ** argv) {
-  
-printf("hello world\n" );
+char *buf = "temp";
+
+int main(int argc, char *argv[]) {
+
+  int fd = stringToInt(argv[1]);
+  printf("arg 1%s\n",argv[1] );
+  printf("arg 1%d\n",fd );
+
+  write(fd,"avbdsdfdsf",10);
+
+  close(fd);
+  return 0;
+}
+
+int stringToInt(char* str){
+  int result=0;
+  int i;
+  int stringLen = strlen(str);
+
+  for(i=0; i<stringLen; i++){
+
+  result = result * 10 + ( str[i] - '0' );
+
+  }
+  return result;
 }
