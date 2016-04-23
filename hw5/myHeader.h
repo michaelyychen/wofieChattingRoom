@@ -81,8 +81,12 @@ void *talkThread(void* vargp);
 void removeUser(int fd);
 void intToS(char *buf,int t);
 void accts();
-unsigned char* getHash(void *acct);
+void getHash(void *acct,char *pwd);
+int compareHash(char *name, char *pwd);
 int Open(const char* pathname, int flags, mode_t mode);
+int checkPwd(char *pwd);
+void addAcct(char *name, char *pwd);
+void initAcct(int fd);
 /*for singals */
 void sigInt_handler(int sigID);
 void cleanUp();

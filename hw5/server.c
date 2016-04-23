@@ -131,10 +131,57 @@ int main (int argc, char ** argv){
 	exit(0);
 }
 
+void addAcct(char *name, char *pwd){
+
+	accountList *acct = malloc(sizeof(accountList));
+	strcpy(acct->name,name);
+
+	if(!RAND_bytes(acct->salt,5)){
+		color("red",2);
+		fprintf(stderr,"Error on generating random bytes\n");
+		color("white",2);
+	}
+
+	getHash((void*)acct,pwd);
+
+	accountList *temp = accHead;
+
+	while(temp!=NULL){
+		temp = temp->next;
+	}
+
+	if(accHead==NULL)
+		accHead = acct;
+
+	temp = acct;
+	
+}
+
 void sigInt_handler(int sigID){
 	shutDown();
 }
 
+int checkPwd(char * pwd){
+	int result = 1,length = 0,upcase =0,symbol = 0,number = 0;
+	char *temp = pwd;
+	while(temp != NULL){
+		if(*temp>='0' && *temp<=9)
+			number = 1;
+		else if(*temp>='A' && *temp<="Z"))
+			upcase = 1;
+		else if((*temp>='!' && *temp<='/') || (*temp>=':' && *temp<='@')
+		 || (*temp>='[' && *temp<='`') || (*temp>='{' && *temp<= '~'))
+			symbol = 1;
+		length++;
+	}
+	if(length<5)
+		return 0;
+
+	result = upcase & symbol;
+	result = result & number;
+	return result;
+
+}
 int Open(const char* pathname, int flags, mode_t mode){
 	int result;
 	result = open(pathname,flags,mode);
@@ -143,10 +190,10 @@ int Open(const char* pathname, int flags, mode_t mode){
 	return result;
 }
 
-unsigned char* getHash(void *acct){
-	char *p = "1234";
-	char *s = "1";
-	unsigned char hash[SHA256_DIGEST_LENGTH];
+void getHash(void *acct, char *pwd){
+
+	accountList *acc = (accountList*)acct;
+
 	SHA256_CTX temp;
 
 	if(!SHA256_Init(&temp)){
@@ -154,35 +201,66 @@ unsigned char* getHash(void *acct){
 		fprintf(stderr,"Error on hashing password: INIT\n");
 		color("white",2);
 	}
-	if(!SHA256_Update(&temp,p,4)){
+	if(!SHA256_Update(&temp,pwd,strlen(pwd)){
 		color("red",2);
 		fprintf(stderr,"Error on hashing password: Update\n");
 		color("white",2);
 	}
-	if(!SHA256_Update(&temp,s,1)){
+	if(!SHA256_Update(&temp,acc->salt,strlen(acc->salt))){
 		color("red",2);
 		fprintf(stderr,"Error on hashing password: Update with Salt\n");
 		color("white",2);
 	}
-	if(!SHA256_Final(hash,&temp)){
+	if(!SHA256_Final(acc->pwd,&temp)){
 		color("red",2);
 		fprintf(stderr,"Error on hashing password: Final\n");
 		color("white",2);
 	}
-	/*	
-	unsigned char test[1];
-	memset(test,0,1);
-	printf("%s\n",test);
-	
-	if(!RAND_bytes(test,5)){
+
+}
+
+int compareHash(char *name, char *pwd){
+
+	accountList *acc = accHead;
+
+	if(temp==NULL)
+		return 0;
+
+	while(strcmp(acc->name,name)){
+		acc = acc>next;
+		if(acc==NULL)
+			return 0;
+	}
+
+	unsigned char compare[SHA256_DIGEST_LENGTH];
+	SHA256_CTX temp;
+
+	if(!SHA256_Init(&temp)){
 		color("red",2);
-		fprintf(stderr,"Error on generating random bytes\n");
+		fprintf(stderr,"Error on hashing password: INIT\n");
 		color("white",2);
 	}
-	printf("%s\n",test);
-	*/
-	printf("%s\n",hash);
-	return NULL;
+	if(!SHA256_Update(&temp,pwd,strlen(pwd)){
+		color("red",2);
+		fprintf(stderr,"Error on hashing password: Update\n");
+		color("white",2);
+	}
+	if(!SHA256_Update(&temp,acc->salt,strlen(acc->salt))){
+		color("red",2);
+		fprintf(stderr,"Error on hashing password: Update with Salt\n");
+		color("white",2);
+	}
+	if(!SHA256_Final(compare,&temp)){
+		color("red",2);
+		fprintf(stderr,"Error on hashing password: Final\n");
+		color("white",2);
+	}
+
+	if(!strcmp(acc->pwd,compare))
+		return 1;
+
+	return 0;
+
 }
 void *loginThread(void *Cpair){
 	printf("---------login thread-------\n");
@@ -360,9 +438,6 @@ void* talkThread(void* vargp){
 	return NULL;
 }
 
-void intToS(char *buf, int t){
-	
-}
 
 void* addUser(char *name, void *pair){
 
@@ -384,6 +459,7 @@ void* addUser(char *name, void *pair){
 		userHead = newUser;
 	else
 		temp->next = newUser;
+
 	return (void*)newUser;
 }
 void removeUser(int fd){
@@ -512,10 +588,13 @@ void users(){
 
 void accts(){
 	accountList *temp = accHead;
+	color("green",1);
 	while(temp!=NULL){
-		printf("User: %s\n Password: %s\n Salt: %s\n",temp->name,temp->pwd,temp->salt);
+		printf("User: %s\n Password: %s\n Salt: %s\n",
+			temp->name,temp->pwd,temp->salt);
 		temp = temp->next;
 	}
+	color("white",1);
 }
 
 void shutDown(){
