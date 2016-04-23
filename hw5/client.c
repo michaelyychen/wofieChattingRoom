@@ -408,6 +408,9 @@ void openChatHandler(char*buf){
 
 	  pid_t pid;
 	  
+	  char msgTo [20];
+	  char msgFrom [20];
+	  char msg[MAXLINE];
 
 	  char *arguments[11];
 	  memset(arguments,0,sizeof(arguments));
@@ -416,17 +419,23 @@ void openChatHandler(char*buf){
 	  arguments[2]="-geometry";
 	  arguments[3]="45x40";
 	  arguments[4]="-T";
-	  arguments[5]="Chat Room";
+	  arguments[5]="Chat Room: ";
 	  arguments[6]="-e";
 	  arguments[7]="./chat";
 	  arguments[9]=NULL;
 
 
+
 	  int pair[2];
 
+	  parseMSG(buf,msgTo,msgFrom,msg);
 
-      static const int parentsocket = 0;
-	  static const int childsocket = 1;
+	  printf("%s\n",msgTo );
+	  printf("%s\n",msgFrom );
+	  printf("%s\n",msg );
+
+	  static const int parent = 0;
+	  static const int child = 1;
 	  if(socketpair(AF_UNIX,SOCK_STREAM,0,pair)<0){
 	  	fprintf(stderr, "socketpair Error\n" );
 	  }
@@ -436,20 +445,21 @@ void openChatHandler(char*buf){
 
 	  		char temp[10];
 	  		memset(temp,0,10);
-	  		sprintf(temp,"%d",pair[childsocket]);
+	  		sprintf(temp,"%d",pair[child]);
 	  		arguments[8]= temp;
 
 	  		//close(pair[parentsocket]);
-
+			
 	  		execvp(arguments[0],arguments);
 
 	  }else{
-	  	
+	  		char buf[1024];
 	  		fprintf(stdout, "in parent\n" );	
 	  		//close(pair[childsocket]);
-	  		char buf[1024];
-		    read(pair[parentsocket], buf, sizeof(buf));
-		    printf("parent received %s\n", buf);
+	  		write(pair[parent],msg,sizeof(msg));
+	  		
+		    read(pair[parent], buf, sizeof(buf));
+
 
 	
 
@@ -457,7 +467,36 @@ void openChatHandler(char*buf){
 
 
 }
+void parseMSG(char*buf,char*msgTo,char*msgFrom,char*msg){
+	  int index = 4;
+	  int i =0;
 
+	  memset(msgTo,0,20);
+	  memset(msgFrom,0,20);
+	  memset(msg,0,1024);
+	  //parse msgTo 
+	  while(buf[index]!=' '){
+	  	msgTo[i]=buf[index];
+	  	i++;
+	  	index ++;
+	  }
+	  index ++;
+	  i =0;
+	  //parse msgFrom
+	  while(buf[index]!=' '){
+	  	msgFrom[i]=buf[index];
+	  	i++;
+	  	index ++;
+	  }
+	  index ++;
+	  i =0;
+	  while(buf[index]!=0){
+	  	msg[i]=buf[index];
+	  	i++;
+	  	index ++;
+	  }
+
+}
 void Select(int n,fd_set *set){
 	if(select(n,set,NULL,NULL,NULL)<0)
 		fprintf(stderr,"Error on select\n");

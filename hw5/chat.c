@@ -21,12 +21,19 @@ int socketFD;
 char *buf = "temp";
 
 int main(int argc, char *argv[]) {
-
+  char buffer[1024];
   int fd = stringToInt(argv[1]);
-  printf("arg 1%s\n",argv[1] );
-  printf("arg 1%d\n",fd );
 
-  write(fd,"avbdsdfdsf",10);
+  read(fd,buffer,1024);
+  printf("%s\n",buffer );
+
+    int  number;
+
+    while(number!=10){
+    printf("Type in a number \n");
+    scanf("%d", &number);
+    printf("The number you typed was %d\n", number);
+}
 
   close(fd);
   return 0;

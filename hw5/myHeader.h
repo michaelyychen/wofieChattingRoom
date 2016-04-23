@@ -49,6 +49,7 @@ void errorPrint();
 
 void color(char*color,int fd);
 
+void parseMSG(char*buf,char*msgTo,char*msgFrom,char*msg);
 
 /*warppers*/
 int Accept(int socket, struct sockaddr *addr, socklen_t *socklen);
