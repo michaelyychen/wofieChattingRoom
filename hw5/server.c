@@ -83,8 +83,8 @@ int main (int argc, char ** argv){
 		int i = 3;
 		while(i<argc){
 			
-			int temp = Open(argv[i],O_RDWR|O_APPEND,S_IWUSR|S_IRUSR|S_IXUSR);
-			if(temp>0){
+			acctFd = Open(argv[i],O_RDWR|O_APPEND,S_IWUSR|S_IRUSR|S_IXUSR);
+			if(acctFd>0){
 				/*initilize account link list*/
 				printf("file exit\n");
 				struct stat st;
@@ -94,7 +94,7 @@ int main (int argc, char ** argv){
 				unsigned char *pwd;
 				unsigned char *salt;
 
-				if(Read(temp,buf,size)>0){
+				if(Read(acctFd,buf,size)>0){
 
 					name = strtok(buf,c);
 					pwd = (unsigned char*)strtok(NULL,c);
@@ -192,10 +192,28 @@ void addAcct(char *name, char *pwd){
 		temp = temp->next;
 	}
 
-	if(accHead==NULL)
+	if(accHead==NULL){
 		accHead = acct;
+		/*open account file and add to it*/
+		acctFd = Open("./Account.txt",O_RDWR|O_APPEND|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
+		writeV(acctFd,acct->name,sizeof(acct->name));
+		writeV(acctFd,"\n",1);
+		writeV(acctFd,(char*)acct->pwd,SHA256_DIGEST_LENGTH);
+		writeV(acctFd,"\n",1);
+		writeV(acctFd,(char*)acct->salt,5);
+		writeV(acctFd,"\n",1);
 
-	temp = acct;
+	}
+	else{
+		temp = acct;
+		writeV(acctFd,acct->name,sizeof(acct->name));
+		writeV(acctFd,"\n",1);
+		writeV(acctFd,(char*)acct->pwd,SHA256_DIGEST_LENGTH);
+		writeV(acctFd,"\n",1);
+		writeV(acctFd,(char*)acct->salt,5);
+		writeV(acctFd,"\n",1);
+	}
+
 	
 }
 
