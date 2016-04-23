@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -486,7 +487,7 @@ void openChatHandler(char*buf){
 		    read(pair[parent], buf, sizeof(buf));
 
 		    memset(responseBUf,0,1024);
-		    
+
 		    strcat(responseBUf,"MSG ");
 		    strcat(responseBUf,msgTo);
 			strcat(responseBUf," ");
