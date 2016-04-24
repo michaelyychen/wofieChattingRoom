@@ -246,7 +246,7 @@ int login(){
 			/*check if is auth*/
 			char buf[MAXLINE];
 			strcpy(buf,"AUTH ");
-			strcat(buf,name);
+			strcat(buf,username);
 			strcat(buf," \r\n\r\n");
 
 			if(!strcmp(buf,buffer)){
@@ -268,7 +268,7 @@ int login(){
 						if(!strcmp(token,"MOTD")){
 							token = strtok(NULL," ");
 							color("green",1);
-							prinf("%s\n",token);
+							printf("%s\n",token);
 							color("white",1);	
 						}else{
 							fprintf(stderr,"Server did not pass back MOTD\n");
@@ -293,6 +293,7 @@ int login(){
 		return -1;
 	}
 
+	return 1;
 }
 
 int promtPwd(char *pwd){

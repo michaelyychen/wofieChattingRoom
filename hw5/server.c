@@ -315,7 +315,7 @@ int compareHash(char *name, char *pwd){
 		color("white",2);
 	}
 
-	if(!memcmp(acc->pwd,compare,SHA256_DIGEST_LENGTH))
+	if(!memcmp(acc->pwd,compare,32))
 		return 1;
 
 	return 0;
@@ -417,14 +417,36 @@ int existUser(void *Cpair, char *name){
 			 return 0;
 		 }
 			/*return message to client*/
+
 		   char msg[MAXLINE];
-		   strcpy(msg,"HI ");
+		   strcpy(msg,"AUTH ");
 		   strcat(msg,name);
 		   strcat(msg," \r\n\r\n");
-		   strcat(msg,"MOTD ");
-		   strcat(msg,welcomeMessage);
-		   strcat(msg," \r\n\r\n");
 		   writeV(pair->fd,msg,MAXLINE);
+
+		   /*read password from user*/
+		   Read(pair->fd,msg,MAXLINE);
+		   char *token = strtok(msg," ");
+		   if(!strcmp(token,"PASS")){
+		   		token = strtok(NULL," ");
+		   		if(compareHash(name,token)){
+		   		   strcpy(msg,"SSAP \r\n\r\n");
+	   			   strcat(msg,"HI ");
+				   strcat(msg,name);
+				   strcat(msg," \r\n\r\n");
+				   strcat(msg,"MOTD ");
+				   strcat(msg,welcomeMessage);
+				   strcat(msg," \r\n\r\n");
+				   writeV(pair->fd,msg,MAXLINE);
+		   		}else{
+		   			handleError(badPassword,pair->fd);
+		   			return 0;
+		   		}
+		   }else{
+		   		fprintf(stderr,"Verb PASS is not received\n");
+		   		return 0;
+		   }
+		  
 		   
 		   return 1;
 
