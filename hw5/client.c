@@ -392,7 +392,15 @@ void removeChild(char* buffer){
 		i++;
 		index++;
 	}
-	printf("%s\n",nameToRemove );
+	
+	childList * temp = childHead;
+	while(temp!=NULL){
+
+		if(!strcmp(temp->user,nameToRemove)){
+			close(temp->fd);
+		}
+		temp=temp->next;
+		}
 
 }
 void childCommand(int fd){
