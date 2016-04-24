@@ -62,7 +62,6 @@ accountList *accHead = NULL;
 
 int main (int argc, char ** argv){
 
-
 	signal(SIGINT,sigInt_handler);
 
 	/*check for arguments*/
@@ -476,7 +475,6 @@ int newUser(void *Cpair, char *name){
 		return 0;
 	}
 
-
 }
 
 void* talkThread(void* vargp){
@@ -507,6 +505,8 @@ void* talkThread(void* vargp){
 				temp = temp/10;
 			}
 			char timeBuf[len];
+			sprintf(timeBuf,"%d",result);
+			printf("time is %d\n",result);
 			//intToS(timeBuf,result);
 			strcpy(buf,"EMIT ");
 			strcat(buf,timeBuf);
@@ -539,8 +539,9 @@ void* talkThread(void* vargp){
 		}else if(!strncmp(buf,"MSG",3)){
 
 			char *nameTo,*nameFrom;
-			char buf2[MAXLINE];
+			char buf2[MAXLINE],buf3[MAXLINE];
 			strcpy(buf2,buf);
+			strcpy(buf3,buf);
 			strtok(buf," ");
 			nameTo = strtok(NULL," ");
 			nameFrom = strtok(NULL," ");
@@ -563,8 +564,13 @@ void* talkThread(void* vargp){
 			if(userTo & userFrom){
 				/*both users exists*/
 				//printf("%s\n",buf);
+			
+
 				writeV(toFd,buf2,MAXLINE);
-				writeV(fromFd,buf2,MAXLINE);
+				
+				printf("%d\n",fromFd);
+				writeV(fromFd,buf3,MAXLINE);
+				
 
 			}else{
 				if(userTo)
@@ -662,31 +668,6 @@ void handleError(int error_code,int fd){
 
 }
 
-int writeV(int fd, char *s, int byte){
-	int result = write(fd,s,byte);
-	if(verbose){
-		color("green",1);
-		printf("%s\n",s);
-		color("white",1);
-	}
-	if(result == -1){
-		color("red",1);
-		fprintf(stderr,"Error on writing to FD: %d\n Error: %s\n",fd,strerror(errno));
-		color("white",1);
-	}
-	return result;
-}
-
-int Close(int fd){
-	int result;
-	if((result = close(fd))== -1){
-		color("red",1);
-		fprintf(stderr,"Error on closing file, file descriptor: %d\n	\
-		Error: %s\n",fd,strerror(errno));
-		color("white",1);
-	}
-	return result;
-}
 
 int checkLogin(char *name, int exist){
 	/*if user already login in, return 0*/
@@ -742,7 +723,7 @@ void stdinCommand(){
 void users(){
 	User *temp = userHead;
 	while(temp!=NULL){
-		printf("User Name: %s\n",temp->name);
+		printf("User Name: %s FD: %d\n",temp->name,temp->clientSock);
 		temp = temp->next;
 	}
 }
@@ -807,19 +788,11 @@ void clientCommand(int listenfd){
 }
 
 int getTime(time_t current_time){
-	time_t newTime = time(0);
-	struct tm* timeinfo1,*timeinfo2;
-	timeinfo1 = localtime(&current_time);
-	timeinfo2 = localtime(&newTime);
-	return ((timeinfo2->tm_hour - timeinfo1->tm_hour)*3600 +
-			(timeinfo2->tm_min - timeinfo1->tm_min)*60 +
-			(timeinfo2->tm_sec - timeinfo1->tm_sec));
-	/*
-	fprintf(stdout,"time in second is [%d %d %d %d:%d:%d]\n",
-		timeinfo->tm_mday, timeinfo->tm_mon + 1,
-		timeinfo->tm_year + 1900, timeinfo->tm_hour,
-		timeinfo->tm_min, timeinfo->tm_sec);
-		*/
+
+	time_t newTime;
+	time(&newTime);
+	
+	return (int)difftime(newTime,current_time);
 }
 
 void Select(int n,fd_set *set){
@@ -968,4 +941,30 @@ void color(char* color,int fd){
     }
 
     write(fd,&mm,1);
+}
+
+int writeV(int fd, char *s, int byte){
+	int result = write(fd,s,byte);
+	if(verbose){
+		color("green",1);
+		printf("%s\n",s);
+		color("white",1);
+	}
+	if(result == -1){
+		color("red",1);
+		fprintf(stderr,"Error on writing to FD: %d\n Error: %s\n",fd,strerror(errno));
+		color("white",1);
+	}
+	return result;
+}
+
+int Close(int fd){
+	int result;
+	if((result = close(fd))== -1){
+		color("red",1);
+		fprintf(stderr,"Error on closing file, file descriptor: %d\n	\
+		Error: %s\n",fd,strerror(errno));
+		color("white",1);
+	}
+	return result;
 }
