@@ -87,6 +87,7 @@ int main (int argc, char ** argv){
 			if(acctFd>0){
 				/*initilize account link list*/
 				printf("file exit\n");
+				/*
 				struct stat st;
 				stat(argv[i],&st);
 				int size = st.st_size;
@@ -113,8 +114,29 @@ int main (int argc, char ** argv){
 						}
 					}
 
-				}
+				}*/
+				accountList *acctTemp = accHead;
+				char buf[1000];
+				
+				while(Read(acctFd,buf,1000)>0){
+					accountList *acct = malloc(sizeof(accountList));
+					memcpy(acct->name,buf,1000);
+					Read(acctFd,buf,5);
+					Read(acctFd,acct->pwd,32);
+					Read(acctFd,buf,5);
+					Read(acctFd,acct->salt,5);
+					Read(acctFd,buf,5);
+					acct->next = NULL;
+					if(accHead==NULL){
+							accHead = acct;
+							acctTemp = accHead;
+						}else{
+							acctTemp->next = acct;
+							acctTemp = acctTemp->next;
+						}
+				}	
 				break;
+
 			}
 
 			i++;
@@ -493,7 +515,7 @@ int newUser(void *Cpair, char *name){
 	pwd = strtok(NULL," ");
 	if(checkPwd(pwd)){
 		/*good password*/
-		addAcct(name,buf);
+		addAcct(name,pwd);
 		memset(buf,0,MAXLINE);
 		strcpy(buf,"SSAPWEN");
 		strcat(buf," \r\n\r\n");

@@ -19,8 +19,19 @@
 int socketFD;
 
 char *buf = "temp";
+char buffer[1024];
+char fdS[20];
+int fd;
+void sigInt_handler(int sigID){
+   shutDown();
+       
+}
+
 
 int main(int argc, char *argv[]) {
+
+
+  signal(SIGINT,sigInt_handler);
 
   if(argc<2){
 
@@ -32,8 +43,8 @@ int main(int argc, char *argv[]) {
 
   }
 
-  char buffer[1024];
-  int fd = stringToInt(argv[1]);
+  strcpy(fdS,argv[1]);
+  fd= stringToInt(argv[1]);
 
   fd_set read_set,ready_set;
 
@@ -57,8 +68,7 @@ int main(int argc, char *argv[]) {
        fgets(buffer,1024,stdin);
 
           if(!strncmp(buffer,"/close",6)){
-            
-            exit(EXIT_SUCCESS);
+            shutDown();
           }
 
       if((index=strchr(buffer,'\n'))!=NULL)
@@ -69,6 +79,10 @@ int main(int argc, char *argv[]) {
     
     if(FD_ISSET(fd,&ready_set)){
       read(fd,buffer,1024);
+      if(!strncmp(buffer,"disconnect",10)){
+         fgets(buffer,1024,stdin);
+         shutDown();
+      }
       printf("%s\n",buffer );
     }
       
@@ -81,7 +95,17 @@ int main(int argc, char *argv[]) {
   
   return 0;
 }
+void shutDown(){
 
+  memset(buffer,0,MAXLINE);
+  strcat(buffer,"remove");
+  strcat(buffer," ");
+  strcat(buffer,fdS);
+  strcat(buffer," ");
+  write(fd,buffer,1024);
+  exit(EXIT_SUCCESS);
+
+}
 int stringToInt(char* str){
   int result=0;
   int i;

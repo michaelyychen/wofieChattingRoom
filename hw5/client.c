@@ -111,7 +111,7 @@ int main (int argc, char ** argv) {
 
 	}
 
-
+	
 	if(login()<0){
 		errorPrint();
 		fprintf(stderr, "Login response failed\n" );
@@ -378,30 +378,101 @@ void serverCommand(int clientfd){
 		timeHandler(buffer);
 	}else if(!strncmp(buffer,"MSG",3)){
 		openChatHandler(buffer);
-	}else if(!strncmp(buffer,"UOFF",4)){
-		removeChild(buffer);
+	}
+	else if(!strncmp(buffer,"UOFF",4)){
+		uoffHandler(buffer);
+	}
+	else if(!strncmp(buffer,"ERR",3)){
+		errorHandler(buffer);
 	}
 
+
+}
+
+void uoffHandler(char* buffer){
+	char temp[100];
+	int index =4;
+	int i =0;
+	int fd =0;
+	childList* ptr = childHead;
+	while(buffer[index]!=' '){
+		temp[i]=buffer[index];
+		index++;
+		i++;
+	}
+
+	while(ptr!=NULL){
+		if(!strcmp(ptr->user,temp)){
+			fd = ptr->fd;
+		}
+		ptr = ptr->next;
+	}
+
+	if(fd!=0){
+		write(fd,"disconnect",10);
+	}
+
+
+
+
+}
+
+void errorHandler(char* buffer){
+	char temp[100];
+	int index =4;
+	int i =0;
+	
+
+	while(buffer[index]!=' '){
+		temp[i]=buffer[index];
+		index++;
+		i++;
+	}
+	errorPrint();
+	if(!strncmp(temp,"00",2)){
+		
+		fprintf(stderr, "USER NAME TAKEN\n");
+	}else if(!strncmp(temp,"01",2)){
+		fprintf(stderr, "USER NOT AVALIABLE\n");
+	}else if(!strncmp(temp,"02",2)){
+		fprintf(stderr, "BAD Password\n");
+	}else{
+		fprintf(stderr, "INTERNAL SERVER ERROR\n");
+	}
+
+	shutDown();
 }
 void removeChild(char* buffer){
-	char nameToRemove[50];
+	char fdToRemove[50];
 	int index = 5;
 	int i =0;
 	while(buffer[index]!=' '){
-		nameToRemove[i]=buffer[index];
+		fdToRemove[i]=buffer[index];
 		i++;
 		index++;
 	}
+
+	int fd = stringToInt(fdToRemove);
 	
+	childList * tempP = childHead;
 	childList * temp = childHead;
-	while(temp!=NULL){
 
-		if(!strcmp(temp->user,nameToRemove)){
-			close(temp->fd);
-		}
-		temp=temp->next;
-		}
+	/*find user to remove*/
+	while(temp->fd==fd){
+		tempP = temp;
+		temp = temp->next;
+	}
+	/*clean up */
+	if(temp == childHead){
+		childHead=NULL;
+	}
 
+	Close(temp->fd);
+	tempP->next = temp->next;
+	free(temp);
+
+
+	
 }
 void childCommand(int fd){
 
@@ -412,6 +483,11 @@ void childCommand(int fd){
 	read(fd,&buffer,sizeof(buffer));
 
 	printf("child sent baCK %s\n",buffer );
+
+	if(!strncmp(buffer,"remove",6)){
+		removeChild(buffer);
+		return;
+	}
 
 	char responseBUf[1024];
 
