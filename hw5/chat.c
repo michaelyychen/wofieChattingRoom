@@ -21,24 +21,61 @@ int socketFD;
 char *buf = "temp";
 
 int main(int argc, char *argv[]) {
+
+  if(argc<2){
+
+
+  fprintf(stderr,"Chat Usage:\n" );
+  fprintf(stderr,
+  "./chat UNIX_SOCKET_FD             \n \
+   UNIX_SOCKET_FD The Number of FD to connect to. \n");
+  exit(0);
+
+  }
+
   char buffer[1024];
   int fd = stringToInt(argv[1]);
 
-   while(1){
+  fd_set read_set,ready_set;
 
+  char * index;
 
-    read(fd,buffer,1024);
-    printf("%s\n",buffer );
+  FD_ZERO(&read_set);
+  FD_SET(STDIN_FILENO,&read_set);
+  FD_SET(fd,&read_set);
+  //childList *temp = childHead;
+  /*loop to see where input is from*/
+  while(1){
+    ready_set=read_set;
 
-    memset(buffer,0,MAXLINE);
-    scanf("%s", buffer);
+    select(fd+1,&ready_set,NULL,NULL,NULL);
+    
+    
+    /*check for input from stdin*/
+    if(FD_ISSET(STDIN_FILENO,&ready_set)){
+      memset(buffer,0,MAXLINE);
+     
+       fgets(buffer,1024,stdin);
 
-    if(!strncmp(buffer,"/close",6)){
-      close(fd);
-      exit(EXIT_SUCCESS);
+          if(!strncmp(buffer,"/close",6)){
+            close(fd);
+            exit(EXIT_SUCCESS);
+          }
+
+      if((index=strchr(buffer,'\n'))!=NULL)
+        *index = '\0';
+      
+      write(fd,buffer,1024);
+      }
+    
+    if(FD_ISSET(fd,&ready_set)){
+      read(fd,buffer,1024);
+      printf("%s\n",buffer );
     }
+      
+   
 
-    write(fd,buffer,1024);
+   
     
     }
 
