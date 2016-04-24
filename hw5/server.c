@@ -75,9 +75,6 @@ int main (int argc, char ** argv){
 	welcomeMessage = argv[2];
 	strcpy(port,argv[1]);
 	
-	color("green",1);
-	fprintf(stdout,"Currently listening on port %s\n",port);
-	color("white",1);
 
 	/*check if account list if provided*/
 	if(argc >=4){
@@ -85,7 +82,7 @@ int main (int argc, char ** argv){
 		int i = 3;
 		while(i<argc){
 			
-			acctFd = open(argv[i],O_RDWR|O_APPEND,S_IWUSR|S_IRUSR|S_IXUSR);
+			acctFd = Open(argv[i],O_RDWR|O_APPEND,S_IWUSR|S_IRUSR|S_IXUSR);
 			if(acctFd>0){
 				/*initilize account link list*/
 				printf("file exit\n");
@@ -144,7 +141,6 @@ int main (int argc, char ** argv){
 		exit(0);
 	}
 
-
 	color("green",1);
 	fprintf(stdout,"Currently listening on port %s\n",port);
 	color("white",1);
@@ -182,15 +178,12 @@ void addAcct(char *name, char *pwd){
 
 	getHash((void*)acct,pwd);
 
-	acct->next = NULL;
-
 	accountList *temp = accHead;
 
-	if(temp!=NULL){
-		while(temp->next!=NULL){
-			temp = temp->next;
-		}
+	while(temp!=NULL){
+		temp = temp->next;
 	}
+
 	if(accHead==NULL){
 		accHead = acct;
 		/*open account file and add to it*/
@@ -204,7 +197,7 @@ void addAcct(char *name, char *pwd){
 
 	}
 	else{
-		temp->next = acct;
+		temp = acct;
 		writeV(acctFd,acct->name,sizeof(acct->name));
 		writeV(acctFd,"\n\n\n\n\n",5);
 		writeV(acctFd,(char*)acct->pwd,SHA256_DIGEST_LENGTH);
@@ -224,7 +217,7 @@ int checkPwd(char * pwd){
 
 	int result = 1,length = 0,upcase =0,symbol = 0,number = 0;
 	char *temp = pwd;
-	int count = strlen(pwd);
+	unsigned long count = sizeof(pwd);
 	while(count>0){
 		printf("%c",*temp);
 		if(*temp>='0' && *temp<='9')
@@ -239,7 +232,7 @@ int checkPwd(char * pwd){
 		count--;
 
 	}
-	if(length<4)
+	if(length<5)
 		return 0;
 
 	result = upcase & symbol;
@@ -261,7 +254,7 @@ void getHash(void *acct, char *pwd){
 	accountList *acc = (accountList*)acct;
 
 	SHA256_CTX temp;
-	
+
 	if(!SHA256_Init(&temp)){
 		color("red",2);
 		fprintf(stderr,"Error on hashing password: INIT\n");
@@ -416,22 +409,12 @@ int existUser(void *Cpair, char *name){
 
 	communicatePair *pair = Cpair;
 	/*check if user already login in*/
-	int loginStatus;
-		 if((loginStatus = checkLogin(name,1))<0){
-		 	if(loginStatus == -2){
+		 if(checkLogin(name,1)==0){
 			 color("red",1);
 			 fprintf(stderr,"same username\n");
 			 color("white",1);
 			 handleError(nameTaken,pair->fd);
 			 return 0;
-			 }
-			 else if(loginStatus == -1){
-			 	color("red",1);
-			 	fprintf(stderr,"username not registered yet\n");
-			 	color("white",1);
-			 	handleError(notAvailable,pair->fd);
-			 	return 0;
-			 }
 		 }
 			/*return message to client*/
 
@@ -472,12 +455,11 @@ int existUser(void *Cpair, char *name){
 int newUser(void *Cpair, char *name){
 
 	communicatePair *pair = Cpair;
-	int loginStatus;
+
 	char buf[MAXLINE];
-	if((loginStatus = checkLogin(name,0))<0){
-		if(loginStatus == -2)
+	if(checkLogin(name,0)==0){
 			 color("red",1);
-			 fprintf(stderr,"username taken\n");
+			 fprintf(stderr,"same username\n");
 			 color("white",1);
 			 handleError(nameTaken,pair->fd);
 			 return 0;
@@ -605,6 +587,7 @@ void* talkThread(void* vargp){
 				/*both users exists*/
 				//printf("%s\n",buf);
 			
+
 				writeV(toFd,buf2,MAXLINE);
 				
 				printf("%d\n",fromFd);
@@ -727,19 +710,10 @@ int checkLogin(char *name, int exist){
 		acc = acc->next;
 	}
 
-	if(exist){
-		if(hasAccount){
-			if(currentlyIn)
-				return 1;
-			else 
-				return -2;
-		}else
-			return -1;
-	}
+	if(exist)
+		return currentlyIn & hasAccount;
 	else 
-		if(!hasAccount)
-			return 1;
-		else return -2;
+		return currentlyIn;
 
 }
 
@@ -1015,5 +989,4 @@ int Close(int fd){
 		color("white",1);
 	}
 	return result;
-
 }

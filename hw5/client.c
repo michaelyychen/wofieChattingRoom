@@ -41,7 +41,7 @@ int verbose =0;
 int clientfd;
 int newuser = 0;
 
-fd_set read_set;
+fd_set read_set,ready_set;
 struct childList* childHead=NULL;
 
 void addChild(int fd,char* name){
@@ -125,29 +125,27 @@ int main (int argc, char ** argv) {
 	//childList *temp = childHead;
 	/*loop to see where input is from*/
 	while(1){
+		ready_set=read_set;
 		int wait = findlast();
 
 		if(wait ==0){
 			wait=clientfd;
+			}		
+		Select(wait+1,&ready_set);
 
-		}printf("wait is %d\n",wait );
-		
-		Select(clientfd+1,&read_set);
-		
 		
 		/*check for input from stdin*/
-		if(FD_ISSET(STDIN_FILENO,&read_set))
+		if(FD_ISSET(STDIN_FILENO,&ready_set))
 			stdinCommand();
 		
-		if(FD_ISSET(clientfd,&read_set))
+		if(FD_ISSET(clientfd,&ready_set))
 			serverCommand(clientfd);
 
 
 		childList *temp = childHead;
 		while(temp!=NULL){
 			
-			if(FD_ISSET(temp->fd,&read_set)){
-				printf("here\n" );
+			if(FD_ISSET(temp->fd,&ready_set)){
 				childCommand(temp->fd);
 			}
 			if(temp->next==NULL){
@@ -583,6 +581,7 @@ void startChatHandler(char*buf){
 			j=0;
 		}
 		if(index==2&&buf[i]=='\n'){
+			output[index][j]=0;
 			break;
 		}
 
