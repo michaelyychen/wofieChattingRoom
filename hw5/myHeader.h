@@ -73,7 +73,7 @@ int getTime(time_t current_time);
 
 ssize_t Read(int fd, void*buf,size_t count);
 
-int checkLogin(char *name);
+int checkLogin(char *name, int exist);
 
 void users();
 void shutDown();
@@ -88,6 +88,9 @@ int Open(const char* pathname, int flags, mode_t mode);
 int checkPwd(char *pwd);
 void addAcct(char *name, char *pwd);
 void initAcct(int fd);
+int existUser(void *Cpair, char *name);
+int newUser(void *Cpair, char *name);
+int promtPwd(char *pwd);
 /*for singals */
 void sigInt_handler(int sigID);
 void cleanUp();

@@ -90,38 +90,31 @@ int main (int argc, char ** argv){
 				struct stat st;
 				stat(argv[i],&st);
 				int size = st.st_size;
-				char buf[size], *name, *c = "\n";
-				unsigned char *pwd;
-				unsigned char *salt;
-
+				accountList *acctTemp = accHead;
+				char buf[size];
 				if(Read(acctFd,buf,size)>0){
-
-					name = strtok(buf,c);
-					pwd = (unsigned char*)strtok(NULL,c);
-					salt = (unsigned char*)strtok(NULL,c);
-
-					accountList *acct = malloc(sizeof(accountList));
-					strcpy(acct->name,name);
-					memcpy(acct->pwd,pwd,SHA256_DIGEST_LENGTH);
-					memcpy(acct->salt,salt,5);
-					accHead = acct;
-					accountList *temp = accHead;
-					temp->next = NULL;
-
-					while((name = strtok(NULL,c))!=NULL){
-						pwd = (unsigned char*)strtok(NULL,c);
-						salt = (unsigned char*)strtok(NULL,c);
-						accountList *acc = malloc(sizeof(accountList));
-						strcpy(acc->name,name);
-						memcpy(acc->pwd,pwd,SHA256_DIGEST_LENGTH);
-						memcpy(acc->salt,salt,5);
-						temp->next = acc;
-						temp = temp->next;
-						temp->next = NULL;
-
+					
+					char *temp = buf;
+					while(size>0){
+						accountList *acct = malloc(sizeof(accountList));
+						memcpy(acct->name,temp,1000);
+						temp += 1005;
+						memcpy(acct->pwd,temp,32);
+						temp += 37;
+						memcpy(acct->salt,temp,5);
+						size -= 1052;
+						acct->next = NULL;
+						if(accHead==NULL){
+							accHead = acct;
+							acctTemp = accHead;
+						}else{
+							acctTemp->next = acct;
+							acctTemp = acctTemp->next;
+						}
 					}
+
 				}
-				
+				break;
 			}
 
 			i++;
@@ -197,21 +190,21 @@ void addAcct(char *name, char *pwd){
 		/*open account file and add to it*/
 		acctFd = Open("./Account.txt",O_RDWR|O_APPEND|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
 		writeV(acctFd,acct->name,sizeof(acct->name));
-		writeV(acctFd,"\n",1);
+		writeV(acctFd,"\n\n\n\n\n",5);
 		writeV(acctFd,(char*)acct->pwd,SHA256_DIGEST_LENGTH);
-		writeV(acctFd,"\n",1);
+		writeV(acctFd,"\n\n\n\n\n",5);
 		writeV(acctFd,(char*)acct->salt,5);
-		writeV(acctFd,"\n",1);
+		writeV(acctFd,"\n\n\n\n\n",5);
 
 	}
 	else{
 		temp = acct;
 		writeV(acctFd,acct->name,sizeof(acct->name));
-		writeV(acctFd,"\n",1);
+		writeV(acctFd,"\n\n\n\n\n",5);
 		writeV(acctFd,(char*)acct->pwd,SHA256_DIGEST_LENGTH);
-		writeV(acctFd,"\n",1);
+		writeV(acctFd,"\n\n\n\n\n",5);
 		writeV(acctFd,(char*)acct->salt,5);
-		writeV(acctFd,"\n",1);
+		writeV(acctFd,"\n\n\n\n\n",5);
 	}
 
 	
@@ -222,10 +215,13 @@ void sigInt_handler(int sigID){
 }
 
 int checkPwd(char * pwd){
+
 	int result = 1,length = 0,upcase =0,symbol = 0,number = 0;
 	char *temp = pwd;
-	while(temp != NULL){
-		if(*temp>='0' && *temp<=9)
+	unsigned long count = sizeof(pwd);
+	while(count>0){
+		printf("%c",*temp);
+		if(*temp>='0' && *temp<='9')
 			number = 1;
 		else if(*temp>='A' && *temp<='Z')
 			upcase = 1;
@@ -233,6 +229,9 @@ int checkPwd(char * pwd){
 		 || (*temp>='[' && *temp<='`') || (*temp>='{' && *temp<= '~'))
 			symbol = 1;
 		length++;
+		temp++;
+		count--;
+
 	}
 	if(length<5)
 		return 0;
@@ -341,10 +340,12 @@ void *loginThread(void *Cpair){
 	}
 
 	Read(pair->fd,buf,MAXLINE);
-	char name1[50];
+	char name1[1000];
     char *token;
     token = strtok(buf, " ");
 	if(!strcmp(token,"IAM")){
+		/*existing user login process*/
+		
 	     token = strtok(NULL, " ");
 		 strcpy(name1,token);
 		 token = strtok(NULL, " ");
@@ -355,6 +356,26 @@ void *loginThread(void *Cpair){
 			 color("white",1);
 			 log=0;
 		 }
+
+		 log = existUser(Cpair,name1);
+		 
+
+	 }else if(!strcmp(token,"IAMNEW")){
+	 	/*new user login process*/
+	 	 token = strtok(NULL, " ");
+		 strcpy(name1,token);
+		 token = strtok(NULL, " ");
+		 if(strcmp(token,"\r\n\r\n")){
+			 /*login fail*/
+			 color("red",1);
+			 fprintf(stderr,"client did not send rnrn\n");
+			 color("white",1);
+			 log=0;
+		 }
+
+	 	 log = newUser(Cpair, name1);
+	 	
+
 	 }else{
 		 color("red",1);
 		 fprintf(stderr,"client did not send IAM\n");
@@ -362,35 +383,20 @@ void *loginThread(void *Cpair){
 		 log=0;
 		 /*login fail*/
 	 }
-	 /*check if user already login in*/
-	 if(checkLogin(name1)==0){
-		 color("red",1);
-		 fprintf(stderr,"same username\n");
-		 color("white",1);
-		 handleError(nameTaken,pair->fd);
-		 log = 0;
-	 }
+	 
 
    if(log){
-	   /*return message to client*/
-	   char msg[MAXLINE];
-	   strcpy(msg,"HI ");
-	   strcat(msg,name1);
-	   strcat(msg," \r\n\r\n");
-	   strcat(msg,"MOTD ");
-	   strcat(msg,welcomeMessage);
-	   strcat(msg," \r\n\r\n");
-	   writeV(pair->fd,msg,1024);
+
 	   User* temp = (User*)addUser(name1,pair);
 	   printf("login sucess! %s\n",name1);
-
+	  
 	   /*create communication thread*/
 	   pthread_t tid;
 	   if(pthread_create(&tid,NULL,talkThread,temp)){
    		color("red",1);
    		fprintf(stderr,"Error on create thread\n");
    		color("white",1);
-   	}
+   		}
 
    }else{
 	   color("red",1);
@@ -398,6 +404,79 @@ void *loginThread(void *Cpair){
 		color("white",1);
 	}
 	return NULL;
+}
+
+int existUser(void *Cpair, char *name){
+
+	communicatePair *pair = Cpair;
+	/*check if user already login in*/
+		 if(checkLogin(name,1)==0){
+			 color("red",1);
+			 fprintf(stderr,"same username\n");
+			 color("white",1);
+			 handleError(nameTaken,pair->fd);
+			 return 0;
+		 }
+			/*return message to client*/
+		   char msg[MAXLINE];
+		   strcpy(msg,"HI ");
+		   strcat(msg,name);
+		   strcat(msg," \r\n\r\n");
+		   strcat(msg,"MOTD ");
+		   strcat(msg,welcomeMessage);
+		   strcat(msg," \r\n\r\n");
+		   writeV(pair->fd,msg,MAXLINE);
+		   
+		   return 1;
+
+}
+
+int newUser(void *Cpair, char *name){
+
+	communicatePair *pair = Cpair;
+
+	char buf[MAXLINE];
+	if(checkLogin(name,0)==0){
+			 color("red",1);
+			 fprintf(stderr,"same username\n");
+			 color("white",1);
+			 handleError(nameTaken,pair->fd);
+			 return 0;
+		 }
+	/*say hi*/
+	strcpy(buf,"HINEW ");
+	strcat(buf,name);
+	strcat(buf," \r\n\r\n");
+	writeV(pair->fd,buf,MAXLINE);
+
+	/*get password from user*/
+	memset(buf,0,MAXLINE);
+	Read(pair->fd,buf,MAXLINE);
+	char *pwd = strtok(buf," ");
+	pwd = strtok(NULL," ");
+	if(checkPwd(pwd)){
+		/*good password*/
+		addAcct(name,buf);
+		memset(buf,0,MAXLINE);
+		strcpy(buf,"SSAPWEN");
+		strcat(buf," \r\n\r\n");
+		strcat(buf,"HI ");
+		strcat(buf,name);
+		strcat(buf," \r\n\r\n");
+		strcat(buf,"MOTD ");
+		strcat(buf,welcomeMessage);
+		strcat(buf," \r\n\r\n");
+		writeV(pair->fd,buf,MAXLINE);
+		printf("%s",buf);
+		return 1;
+
+	}else{
+		/*handle bad password*/
+		handleError(badPassword,pair->fd);
+		return 0;
+	}
+
+
 }
 
 void* talkThread(void* vargp){
@@ -561,7 +640,7 @@ void removeUser(int fd){
 
 void handleError(int error_code,int fd){
 	if(error_code==nameTaken){
-		writeV(fd,"ERR 00 USER NAME TAKEN \r\n\r\nBYE \r\n\r\n",40);
+		writeV(fd,"ERR 00 USER NAME TAKEN \r\n\r\nBYE \r\n\r\n",50);
 		/*read bye from client*/
 		char *temp = malloc(8);
 		Read(fd,temp,8);
@@ -570,10 +649,11 @@ void handleError(int error_code,int fd){
 		}
 		free(temp);
 	}else if(error_code==notAvailable){
-		writeV(fd,"ERR 01 USER NOT AVAILABLE \r\n\r\n",30);
-
+		writeV(fd,"ERR 01 USER NOT AVAILABLE \r\n\r\nBYE \r\n\r\n",50);
+		Close(fd);
 	}else if(error_code==badPassword){
-
+		writeV(fd,"ERR 02 BAD PASSWORD \r\n\r\nBYE \r\n\r\n",50);
+		Close(fd);
 	}else{
 
 	}
@@ -606,16 +686,30 @@ int Close(int fd){
 	return result;
 }
 
-int checkLogin(char *name){
+int checkLogin(char *name, int exist){
 	/*if user already login in, return 0*/
-	int currentlyIn = 1;
+	int currentlyIn = 1, hasAccount = 0;
 	User *temp = userHead;
 	while(temp!=NULL){
 		if(!strcmp(temp->name,name))
 			currentlyIn = 0;
 		temp = temp->next;
 	}
-	return currentlyIn;
+
+	accountList *acc = accHead;
+	while(acc!=NULL){
+		if(!strcmp(acc->name,name)){
+			hasAccount = 1;
+			break;
+		}
+		acc = acc->next;
+	}
+
+	if(exist)
+		return currentlyIn & hasAccount;
+	else 
+		return currentlyIn;
+
 }
 
 void stdinCommand(){
@@ -646,7 +740,7 @@ void stdinCommand(){
 void users(){
 	User *temp = userHead;
 	while(temp!=NULL){
-		printf("%s\n",temp->name);
+		printf("User Name: %s\n",temp->name);
 		temp = temp->next;
 	}
 }
@@ -655,7 +749,7 @@ void accts(){
 	accountList *temp = accHead;
 	color("green",1);
 	while(temp!=NULL){
-		printf("User: %s\n Password: %s\n Salt: %s\n",
+		printf("User: %s\nPassword: %s\nSalt: %s\n",
 			temp->name,temp->pwd,temp->salt);
 		temp = temp->next;
 	}
@@ -807,9 +901,10 @@ void HELP(){
 	SERVER_PORT			Port number of server\n \
 	MOTD				Message of today\n \
 	/users				Print a list of user currently logged in\n \
+	/accts 				Print a list of accounts \n \
 	/help				Print this list of commands	and exit\n \
-	/shutdown			Close all socket, files and free heap memory then terminate\n");
-
+	/shutDown			Close all socket, files and free heap memory then terminate\n");
+	shutDown();
 	exit(0);
 }
 

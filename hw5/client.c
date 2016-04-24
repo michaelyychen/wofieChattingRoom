@@ -14,6 +14,7 @@
 #include <netdb.h>
 #include <sys/un.h>
 #include <sys/select.h>
+#include <termios.h>
 #include "myHeader.h"
 
 #define MAXLINE 1024
@@ -31,6 +32,7 @@ char username[20];
 char host[20];
 char port[20];
 int clientfd;
+int newuser = 0;
 
 void sigInt_handler(int sigID){
 	write(clientfd,"BYE \r\n\r\n",8);
@@ -48,25 +50,11 @@ int main (int argc, char ** argv) {
 
 	signal(SIGINT,sigInt_handler);
 
-	int opt = 0;
-	while((opt = getopt(argc,argv,"hcv")) != -1){
-		if(opt == 'h'){
-			HELP();
-			exit(EXIT_SUCCESS);
-		}else if(opt == 'c'){
-
-		}
-		else if(opt == 'v'){
-
-		}
-
-	}
-
 	if(argc<4){
-		errorPrint();
-		fprintf(stderr,"Missing arguments \n");
-		HELP();
-		exit(0);
+	errorPrint();
+	fprintf(stderr,"Missing arguments \n");
+	HELP();
+	exit(0);
 	}
 
 	strcpy(username,argv[1]);
@@ -80,10 +68,20 @@ int main (int argc, char ** argv) {
 
 	}
 
+	int opt = 0;
+	while((opt = getopt(argc,argv,"hcv")) != -1){
+		if(opt == 'h'){
+			HELP();
+			exit(EXIT_SUCCESS);
+		}else if(opt == 'c'){
+			newuser = 1;
+		}
+		else if(opt == 'v'){
 
-	/*		
+		}
 
-	
+	}
+
 
 	if(login()<0){
 		errorPrint();
@@ -91,7 +89,7 @@ int main (int argc, char ** argv) {
 		Close(clientfd);
 		exit(0);
 	}
-	*/
+
 	fd_set read_set, ready_set;
 	FD_ZERO(&read_set);
 	FD_SET(STDIN_FILENO,&read_set);
@@ -134,40 +132,126 @@ int login(){
 	if(!strncmp(buffer,"EIFLOW \r\n\r\n",11)){
 
 		memset(&buffer,0,sizeof(buffer));
-		strcat(buffer,"IAM ");
-		strcat(buffer,username);
-		strcat(buffer," \r\n\r\n");
+		/*if user wants to create new acct*/
+		if(newuser){
+			/*tell server iam new*/
+			strcpy(buffer,"IAMNEW ");
+			strcat(buffer,username);
+			strcat(buffer," \r\n\r\n");
 
-		write(clientfd,&buffer,sizeof(buffer));
+			write(clientfd,&buffer,sizeof(buffer));
 
-		char arguments[10][1024];
+			char arguments[10][1024];
 
-		parseArg(clientfd,arguments);
+			parseArg(clientfd,arguments);
 
-		if(!strcmp(arguments[0],nameBuffer)){
-			//login sucess, print MOTD <message>
+			strcpy(buffer,"HINEW ");
+			strcat(buffer,username);
+			strcat(buffer," \r\n\r\n");
 
-			color("green",1);
+			if(!strcmp(arguments[0],buffer)){
+				/*prompt user for password*/
+				char p[64];
+				promtPwd(p);
+				memset(buffer,0,MAXLINE);
+				strcpy(buffer,"NEWPASS ");
+				strcat(buffer,p);
+				strcat(buffer," \r\n\r\n");
+				write(clientfd,buffer,MAXLINE);
 
-			printf("%s\n",arguments[1]);
+				/*read response from server*/
+				char arguments[10][1024];
 
-			color("white",1);
+				parseArg(clientfd,arguments);
 
-			return 1;
-		}else{
-			//error occurs
-			
-			if(!strncmp(arguments[1],"BYE \r\n\r\n",8)){
-				write(clientfd,"BYE \r\n\r\n",8);
+				if(!strcmp(arguments[1],nameBuffer)){
+
+					color("green",1);
+
+					printf("%s\n",arguments[2]);
+
+					color("white",1);
+
+					return 1;
+				}else{
+
+					printf("Error bad password\n");
+					return -1;
+				}
+
+
+			}else{
+				printf("Error bad username\n");
+				return -1;
 			}
 
-			return -1;
+		}else{
+			/*login process for exist user*/
+			strcat(buffer,"IAM ");
+			strcat(buffer,username);
+			strcat(buffer," \r\n\r\n");
+
+			write(clientfd,&buffer,sizeof(buffer));
+
+			char arguments[10][1024];
+
+			parseArg(clientfd,arguments);
+
+			if(!strcmp(arguments[0],nameBuffer)){
+				//login sucess, print MOTD <message>
+
+				color("green",1);
+
+				printf("%s\n",arguments[1]);
+
+				color("white",1);
+
+			return 1;
+			}else{
+				//error occurs
+				
+				if(!strncmp(arguments[1],"BYE \r\n\r\n",8)){
+					write(clientfd,"BYE \r\n\r\n",8);
+				}
+
+				return -1;
+			}
 		}
 
 	}else{
 		return -1;
 	}
 
+}
+
+int promtPwd(char *pwd){
+
+	struct termios oflags, nflags;
+ 
+    /* disabling echo */
+    tcgetattr(fileno(stdin), &oflags);
+    nflags = oflags;
+    nflags.c_lflag &= ~ECHO;
+    nflags.c_lflag |= ECHONL;
+
+    if (tcsetattr(fileno(stdin), TCSANOW, &nflags) != 0) {
+        perror("tcsetattr");
+        return -1;
+    }
+
+    printf("password: ");
+   
+    fgets(pwd,64, stdin);
+    pwd[strlen(pwd) - 1] = 0;
+    printf("you typed '%s'\n", pwd);
+
+    /* restore terminal */
+    if (tcsetattr(fileno(stdin), TCSANOW, &oflags) != 0) {
+        perror("tcsetattr");
+        return -1;
+    }
+
+    return 1;
 }
 
 void parseArg(int fd,char arguments[10][1024]){
