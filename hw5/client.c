@@ -25,15 +25,44 @@ struct args{
 };
 typedef struct args args;
 
+struct childList{
+	char user[50];
+	int fd;
+	struct childList* next; 	
+};typedef struct childList childList;
+
 args *head = NULL;
 char cc = 0x1B;
 char bb = 0x5B;
 char username[20];
 char host[20];
 char port[20];
+
 int clientfd;
 int newuser = 0;
 
+fd_set read_set;
+struct childList* childHead=NULL;
+
+void addChild(int fd,char* name){
+	childList *child = malloc(sizeof(childList));
+	strcpy(child->user,name);
+	child->fd=fd;
+	//child->user name;
+	child->next = NULL;
+	childList *temp = childHead;
+	if(temp!=NULL){
+		while(temp->next!=NULL){
+			temp = temp->next;
+		}
+	
+	temp->next = child;
+	}else{
+
+		childHead = child;
+	}
+
+}
 void sigInt_handler(int sigID){
 	write(clientfd,"BYE \r\n\r\n",8);
 	char buf[MAXLINE];
@@ -58,6 +87,7 @@ int main (int argc, char ** argv) {
 	}
 
 	strcpy(username,argv[1]);
+
 	strcpy(host,argv[2]);
 	strcpy(port,argv[3]);
 
@@ -90,25 +120,43 @@ int main (int argc, char ** argv) {
 		exit(0);
 	}
 
-	fd_set read_set, ready_set;
 	FD_ZERO(&read_set);
 	FD_SET(STDIN_FILENO,&read_set);
 	FD_SET(clientfd,&read_set);
-
+	//childList *temp = childHead;
 	/*loop to see where input is from*/
 	while(1){
-		ready_set = read_set;
-		Select(clientfd+1,&ready_set);
+		int wait = findlast();
+
+		if(wait ==0){
+			wait=clientfd;
+
+		}printf("wait is %d\n",wait );
+		
+		Select(wait+1,&read_set);
+		
+		
 		/*check for input from stdin*/
-		if(FD_ISSET(STDIN_FILENO,&ready_set)){
+		if(FD_ISSET(STDIN_FILENO,&read_set))
 			stdinCommand();
-
-		}
-
-
-		if(FD_ISSET(clientfd,&ready_set))
+		
+		if(FD_ISSET(clientfd,&read_set))
 			serverCommand(clientfd);
 
+
+		childList *temp = childHead;
+		while(temp!=NULL){
+			
+			if(FD_ISSET(temp->fd,&read_set)){
+				printf("here\n" );
+				childCommand(temp->fd);
+			}
+			if(temp->next==NULL){
+				break;
+			}
+			temp = temp->next;
+		}
+		
 	}
 
 	Close(clientfd);
@@ -255,29 +303,6 @@ int promtPwd(char *pwd){
 }
 
 void parseArg(int fd,char arguments[10][1024]){
-	/*
-	args *temp = malloc(sizeof(args));
-	head = temp;
-	char buf[MAXLINE];
-
-	read(fd,buf,MAXLINE);
-	char *tempC = strtok(buf,"\r\n\r\n");
-	strcpy(temp->arg,tempC);
-	strcat(temp->arg,"\r\n\r\n");
-	printf("%s\n",tempC);
-
-	while((tempC = strtok(NULL,"\r\n\r\n"))!=NULL){
-
-		printf("aaa\n");
-		args *Next = malloc(sizeof(args));
-
-		strcpy(Next->arg,tempC);
-		strcat(Next->arg,"\r\n\r\n");
-
-		temp->next = Next;
-		temp = temp->next;
-	}
-	*/
 
 	char buf[MAXLINE],*temp;
 	read(fd,buf,MAXLINE);
@@ -334,6 +359,47 @@ void serverCommand(int clientfd){
 	}else if(!strncmp(buffer,"MSG",3)){
 		openChatHandler(buffer);
 	}
+
+}
+
+void childCommand(int fd){
+
+	char buffer[1024];
+	char msgTo[50];
+	memset(buffer,0,sizeof(buffer));
+	//readin child input
+	read(fd,&buffer,sizeof(buffer));
+
+	printf("child sent baCK %s\n",buffer );
+
+	char responseBUf[1024];
+
+	//close(pair[childsocket]);
+
+	
+	//write(pair[parent],temp,sizeof(temp));
+	
+	childList *temp = childHead;
+    while(temp!=NULL){
+    	if(temp->fd==fd){
+    		strcpy(msgTo,temp->user);
+    	}
+    	if(temp->next==NULL){
+    		break;
+    	}
+    	temp = temp->next;
+    }
+
+    memset(responseBUf,0,1024);
+
+    strcat(responseBUf,"MSG ");
+    strcat(responseBUf,msgTo);
+	strcat(responseBUf," ");
+	strcat(responseBUf,username);
+	strcat(responseBUf," ");
+ 	strcat(responseBUf,buffer);
+	strcat(responseBUf," \r\n\r\n");
+	write(clientfd,responseBUf,sizeof(responseBUf));
 
 }
 
@@ -461,6 +527,7 @@ void startChatHandler(char*buf){
 	//format the buffer so that [0]=/chat [1]=<TO> [2]=message
 	char output[3][MAXLINE];
 
+	memset(buffer,0,1024);
 	int i =0;
 	int j =0;
 	int index=0;
@@ -469,16 +536,21 @@ void startChatHandler(char*buf){
 
 		if(index!=2&&buf[i]==' '){
 			index++;
+			i++;
 			j=0;
+		}
+		if(index==2&&buf[i]=='\n'){
+			break;
 		}
 
 		output[index][j]=buf[i];
 		i++;
 		j++;
 	}
-
+	
 	//construct output protocol
-	strcat(buffer,"MSG ");
+	strcat(buffer,"MSG");
+	strcat(buffer," ");
 	strcat(buffer,output[1]);
 	strcat(buffer," ");
 	strcat(buffer,username);
@@ -489,6 +561,7 @@ void startChatHandler(char*buf){
 	write(clientfd,buffer,sizeof(buffer));
 
 }
+
 void openChatHandler(char*buf){
 
 	  pid_t pid;
@@ -500,90 +573,109 @@ void openChatHandler(char*buf){
 	  char *arguments[11];
 	  memset(arguments,0,sizeof(arguments));
 	  arguments[0]="xterm";
-	  arguments[1]="-hold";
-	  arguments[2]="-geometry";
-	  arguments[3]="45x40";
-	  arguments[4]="-T";
-	  arguments[5]="Chat Room: ";
-	  arguments[6]="-e";
-	  arguments[7]="./chat";
+	  //arguments[1]="-hold";
+	  arguments[1]="-geometry";
+	  arguments[2]="45x40";
+	  arguments[3]="-T";
+	  //arguments[4]="Chat Room: ";
+	  arguments[5]="-e";
+	  arguments[6]="./chat";
 	  arguments[9]=NULL;
 
-
-
+	  char title[] = "Chat Room: ";
+	  char output[1024];
+ 	  int window=0;
 	  int pair[2];
 	  //arrow true = > incoming msg else '<' outgoing
-	  bool arrow = false;
+	  
 	  parseMSG(buf,msgTo,msgFrom,msg);
 
 	  printf("%s\n",msgTo );
 	  printf("%s\n",msgFrom );
 	  printf("%s\n",msg );
 
-	  static const int parent = 0;
-	  static const int child = 1;
-
-	  if(socketpair(AF_UNIX,SOCK_STREAM,0,pair)<0){
-	  	fprintf(stderr, "socketpair Error\n" );
+	   memset(output,0,sizeof(output));
+	  //if from=myself, check if we have chat window open with msgTo 
+	  if(!strcmp(msgFrom,username)){
+	  	window = windowCheck(msgTo);
+	  	strcat(title,msgTo);
+	  	arguments[4]=title;
+	  	strcat(output,"<");
 	  }
+	  else{
+	  	window= windowCheck(msgFrom);
+	  	strcat(title,msgFrom);
+	  	arguments[4]=title;
+	  	strcat(output,">");
+	  }
+	  //don't need to fork, write message to child directly
+	  if(window>0){
 
-	  // if msgTo and username != < outgoing msg
-	  if(strcmp(msgTo,username)){
-	  	strcat(arguments[5],msgTo);
-	  	arrow = false;
+	  	strcat(output,msg);
+	  	write(window,output,sizeof(output));
+
+
 	  }else{
-	  	strcat(arguments[5],msgFrom);
-	  	arrow = true;
-	  }
 
+		  static const int parent = 0;
+		  static const int child = 1;
+
+		  if(socketpair(AF_UNIX,SOCK_STREAM,0,pair)<0){
+		  	fprintf(stderr, "socketpair Error\n" );
+		  }
 	  
+		  if((pid = fork())==0){
 
-	  if((pid = fork())==0){
+		  		char temp[10];
+		  		memset(temp,0,10);
+		  		sprintf(temp,"%d",pair[child]);
+		  		arguments[7]= temp;
 
-	  		char temp[10];
-	  		memset(temp,0,10);
-	  		sprintf(temp,"%d",pair[child]);
-	  		arguments[8]= temp;
-
-	  		//close(pair[parentsocket]);
+		  		close(pair[parent]);
 			
-	  		execvp(arguments[0],arguments);
+		  		execvp(arguments[0],arguments);
+		  		
 
-	  }else{
+		  }else{
+		  		strcat(output,msg);
+		  		write(pair[parent],output,sizeof(output));
+		  		
+		  		close(pair[child]);
+		  		FD_SET(pair[parent],&read_set);
 
-	  		char buf[1024];
-	  		char temp[1024];
-	  		char responseBUf[1024];
-	  		fprintf(stdout, "in parent\n" );	
-	  		//close(pair[childsocket]);
-	  		memset(temp,0,1024);
+	  			if(!strcmp(msgFrom,username)){
+				  	addChild(pair[parent],msgTo);
+				}
+				  else{	  	
+		  			addChild(pair[parent],msgFrom);
+				}
 
-	  		if(!arrow){
-	  			strcat(temp,"<");
-	  			strcat(temp,msg);
-	  		}else{
-	  			strcat(temp,">");
-	  			strcat(temp,msg);
-	  		}
 
-	  		write(pair[parent],temp,sizeof(temp));
-	  		
-		    read(pair[parent], buf, sizeof(buf));
-
-		    memset(responseBUf,0,1024);
-
-		    strcat(responseBUf,"MSG ");
-		    strcat(responseBUf,msgTo);
-			strcat(responseBUf," ");
-			strcat(responseBUf,username);
-			strcat(responseBUf," ");
-		 	strcat(responseBUf,buf);
-			strcat(responseBUf," \r\n\r\n");
-
-			write(clientfd,responseBUf,sizeof(responseBUf));
+		  }
 	
 
+
 	  }
+	 
+
+}
+int windowCheck(char*user){
+	//user can't be username
+	childList *temp = childHead;
+	if(temp==NULL){
+			return -1;
+	}else{
+		while(temp!=NULL){
+			if(!strcmp(temp->user,user)){
+				return temp->fd;
+			}
+			if(temp->next==NULL){
+				break;
+			}
+			temp= temp->next;
+		}
+		return -1;
+	}
 
 
 }
@@ -610,7 +702,7 @@ void parseMSG(char*buf,char*msgTo,char*msgFrom,char*msg){
 	  }
 	  index ++;
 	  i =0;
-	  while(buf[index]!=0){
+	  while(buf[index]!='\r'){
 	  	msg[i]=buf[index];
 	  	i++;
 	  	index ++;
@@ -681,5 +773,27 @@ void errorPrint(){
 	color("red",2);
 	fprintf(stderr, "error: " );
 	color("white",2);
+
+}
+
+int findlast(){
+	childList* temp = childHead;
+
+	int max =0;
+	if(temp==NULL){
+		return 0;
+	}else{
+		while(temp!=NULL){
+			if(max<(temp->fd)){	
+				max = temp->fd;
+			}
+			if(temp->next==NULL){
+				break;
+			}
+			temp = temp->next;
+		}
+
+		return max;
+	}
 
 }

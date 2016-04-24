@@ -33,6 +33,8 @@ void openChatHandler(char*str);
 
 int stringToInt(char*str);
 
+int findlast();
+
 void listuHandler(char* buffer);
 /*
 hua li de fen ge xian
@@ -51,6 +53,12 @@ void color(char*color,int fd);
 
 void parseMSG(char*buf,char*msgTo,char*msgFrom,char*msg);
 
+void addChild(int fd,char*user);
+
+void childCommand(int fd);
+
+//return -1 if need to create new else return child fd
+int windowCheck(char*user);
 /*warppers*/
 int Accept(int socket, struct sockaddr *addr, socklen_t *socklen);
 int Pthread_join(pthread_t tid, void **thread_return);

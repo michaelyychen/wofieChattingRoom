@@ -24,19 +24,25 @@ int main(int argc, char *argv[]) {
   char buffer[1024];
   int fd = stringToInt(argv[1]);
 
-  read(fd,buffer,1024);
-  printf("%s\n",buffer );
+   while(1){
 
-    
 
-    while(strcmp(buffer,"/close")){
-    printf("Type in a message: \n");
+    read(fd,buffer,1024);
+    printf("%s\n",buffer );
+
+    memset(buffer,0,MAXLINE);
     scanf("%s", buffer);
-    printf("The msg was %s\n", buffer);
+
+    if(!strncmp(buffer,"/close",6)){
+      close(fd);
+      exit(EXIT_SUCCESS);
+    }
+
+    write(fd,buffer,1024);
     
     }
 
-  close(fd);
+  
   return 0;
 }
 
