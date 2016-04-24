@@ -62,6 +62,7 @@ accountList *accHead = NULL;
 
 int main (int argc, char ** argv){
 
+
 	signal(SIGINT,sigInt_handler);
 
 	/*check for arguments*/
@@ -215,9 +216,14 @@ void sigInt_handler(int sigID){
 
 int checkPwd(char * pwd){
 
-	int result = 1,length = 0,upcase =0,symbol = 0,number = 0;
+	int result = 1,upcase =0,symbol = 0,number = 0;
 	char *temp = pwd;
-	unsigned long count = sizeof(pwd);
+
+	int count = strlen(pwd);
+
+	if(count < 5)
+		return 0;
+
 	while(count>0){
 		printf("%c",*temp);
 		if(*temp>='0' && *temp<='9')
@@ -227,13 +233,11 @@ int checkPwd(char * pwd){
 		else if((*temp>='!' && *temp<='/') || (*temp>=':' && *temp<='@')
 		 || (*temp>='[' && *temp<='`') || (*temp>='{' && *temp<= '~'))
 			symbol = 1;
-		length++;
+	
 		temp++;
 		count--;
 
 	}
-	if(length<5)
-		return 0;
 
 	result = upcase & symbol;
 	result = result & number;
@@ -265,6 +269,7 @@ void getHash(void *acct, char *pwd){
 		fprintf(stderr,"Error on hashing password: Update\n");
 		color("white",2);
 	}
+	
 	if(!SHA256_Update(&temp,acc->salt,5)){
 		color("red",2);
 		fprintf(stderr,"Error on hashing password: Update with Salt\n");
@@ -294,6 +299,7 @@ int compareHash(char *name, char *pwd){
 	unsigned char compare[SHA256_DIGEST_LENGTH];
 	SHA256_CTX temp;
 
+
 	if(!SHA256_Init(&temp)){
 		color("red",2);
 		fprintf(stderr,"Error on hashing password: INIT\n");
@@ -304,6 +310,7 @@ int compareHash(char *name, char *pwd){
 		fprintf(stderr,"Error on hashing password: Update\n");
 		color("white",2);
 	}
+	
 	if(!SHA256_Update(&temp,acc->salt,5)){
 		color("red",2);
 		fprintf(stderr,"Error on hashing password: Update with Salt\n");
@@ -409,12 +416,21 @@ int existUser(void *Cpair, char *name){
 
 	communicatePair *pair = Cpair;
 	/*check if user already login in*/
-		 if(checkLogin(name,1)==0){
+	int loginS;
+		 if((loginS = checkLogin(name,1))<0){
+		 	if(loginS == -1){
 			 color("red",1);
 			 fprintf(stderr,"same username\n");
 			 color("white",1);
 			 handleError(nameTaken,pair->fd);
 			 return 0;
+			}else if(loginS == -1){
+				color("red",1);
+				 fprintf(stderr,"same username\n");
+				 color("white",1);
+				 handleError(notAvailable,pair->fd);
+				 return 0;
+			}
 		 }
 			/*return message to client*/
 
@@ -710,10 +726,19 @@ int checkLogin(char *name, int exist){
 		acc = acc->next;
 	}
 
-	if(exist)
-		return currentlyIn & hasAccount;
+	if(exist){
+		if(hasAccount){
+			if(currentlyIn)
+				return 1;
+			else 
+				return -1;
+		}else{
+			return -2; 
+		}
+	}
+		
 	else 
-		return currentlyIn;
+		return !hasAccount;
 
 }
 

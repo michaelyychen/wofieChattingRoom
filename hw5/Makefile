@@ -7,8 +7,8 @@ chat: chat.c
 	gcc -Wall -Werror  -g -o chat chat.c
 
 server: server.c
-	gcc -Wall -Werror -pthread -g -o server server.c -lcrypto
+	gcc -Wall -Werror -pthread -g -o server server.c -lcrypto -lssl
 
 clean:
-	rm -f *~ *.o server client
+	rm -f *~ *.o server client chat
 	
