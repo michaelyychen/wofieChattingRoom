@@ -83,6 +83,7 @@ ssize_t Read(int fd, void*buf,size_t count);
 
 int checkLogin(char *name, int exist);
 
+void removeChild(char* buf);
 void users();
 void shutDown();
 void parseArg(int fd,char arguments[10][1024]);

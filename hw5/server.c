@@ -76,7 +76,7 @@ int main (int argc, char ** argv){
 	strcpy(port,argv[1]);
 	
 	color("green",1);
-	fprintf(stdout,"Currently listening on port %s\n",argv[1]);
+	fprintf(stdout,"Currently listening on port %s\n",port);
 	color("white",1);
 
 	/*check if account list if provided*/
@@ -144,7 +144,11 @@ int main (int argc, char ** argv){
 		exit(0);
 	}
 
-	
+
+	color("green",1);
+	fprintf(stdout,"Currently listening on port %s\n",port);
+	color("white",1);
+
 	/*for multiIndexing*/
 	fd_set read_set, ready_set;
 	FD_ZERO(&read_set);

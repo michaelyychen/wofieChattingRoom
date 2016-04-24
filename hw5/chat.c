@@ -24,7 +24,6 @@ int main(int argc, char *argv[]) {
 
   if(argc<2){
 
-
   fprintf(stderr,"Chat Usage:\n" );
   fprintf(stderr,
   "./chat UNIX_SOCKET_FD             \n \
@@ -58,7 +57,7 @@ int main(int argc, char *argv[]) {
        fgets(buffer,1024,stdin);
 
           if(!strncmp(buffer,"/close",6)){
-            close(fd);
+            
             exit(EXIT_SUCCESS);
           }
 
