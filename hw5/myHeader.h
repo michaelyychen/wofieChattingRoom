@@ -33,6 +33,8 @@ void openChatHandler(char*str);
 
 int stringToInt(char*str);
 
+int findlast();
+
 void listuHandler(char* buffer);
 /*
 hua li de fen ge xian

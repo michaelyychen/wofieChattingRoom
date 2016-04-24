@@ -98,6 +98,7 @@ int main (int argc, char ** argv) {
 	}
 
 	strcpy(username,argv[1]);
+
 	strcpy(host,argv[2]);
 	strcpy(port,argv[3]);
 
@@ -127,8 +128,16 @@ int main (int argc, char ** argv) {
 	//childList *temp = childHead;
 	/*loop to see where input is from*/
 	while(1){
+		int wait = findlast();
+
+		if(wait ==0){
+			wait=clientfd;
+
+		}printf("wait is %d\n",wait );
 		
-		Select(clientfd+1,&read_set);
+		Select(wait+1,&read_set);
+		
+		
 		/*check for input from stdin*/
 		if(FD_ISSET(STDIN_FILENO,&read_set))
 			stdinCommand();
@@ -136,8 +145,10 @@ int main (int argc, char ** argv) {
 		if(FD_ISSET(clientfd,&read_set))
 			serverCommand(clientfd);
 
-		while(childHead!=NULL){
-			childList *temp = childHead;
+
+		childList *temp = childHead;
+		while(temp!=NULL){
+			
 			if(FD_ISSET(temp->fd,&read_set)){
 				printf("here\n" );
 				childCommand(temp->fd);
@@ -279,7 +290,6 @@ void childCommand(int fd){
 
 	char responseBUf[1024];
 
-	fprintf(stdout, "in parent\n" );	
 	//close(pair[childsocket]);
 
 	
@@ -305,7 +315,6 @@ void childCommand(int fd){
 	strcat(responseBUf," ");
  	strcat(responseBUf,buffer);
 	strcat(responseBUf," \r\n\r\n");
-	printf("response%s\n",responseBUf );
 	write(clientfd,responseBUf,sizeof(responseBUf));
 
 }
@@ -434,6 +443,7 @@ void startChatHandler(char*buf){
 	//format the buffer so that [0]=/chat [1]=<TO> [2]=message
 	char output[3][MAXLINE];
 
+	memset(buffer,0,1024);
 	int i =0;
 	int j =0;
 	int index=0;
@@ -442,16 +452,21 @@ void startChatHandler(char*buf){
 
 		if(index!=2&&buf[i]==' '){
 			index++;
+			i++;
 			j=0;
+		}
+		if(index==2&&buf[i]=='\n'){
+			break;
 		}
 
 		output[index][j]=buf[i];
 		i++;
 		j++;
 	}
-
+	
 	//construct output protocol
-	strcat(buffer,"MSG ");
+	strcat(buffer,"MSG");
+	strcat(buffer," ");
 	strcat(buffer,output[1]);
 	strcat(buffer," ");
 	strcat(buffer,username);
@@ -478,13 +493,14 @@ void openChatHandler(char*buf){
 	  arguments[1]="-geometry";
 	  arguments[2]="45x40";
 	  arguments[3]="-T";
-	  arguments[4]="Chat Room: ";
+	  //arguments[4]="Chat Room: ";
 	  arguments[5]="-e";
 	  arguments[6]="./chat";
 	  arguments[9]=NULL;
 
-
-	  int window=0;
+	  char title[] = "Chat Room: ";
+	  char output[1024];
+ 	  int window=0;
 	  int pair[2];
 	  //arrow true = > incoming msg else '<' outgoing
 	  
@@ -494,17 +510,25 @@ void openChatHandler(char*buf){
 	  printf("%s\n",msgFrom );
 	  printf("%s\n",msg );
 
-	  //if from=myself, check if we have chat window with msgTo 
+	   memset(output,0,sizeof(output));
+	  //if from=myself, check if we have chat window open with msgTo 
 	  if(!strcmp(msgFrom,username)){
 	  	window = windowCheck(msgTo);
+	  	strcat(title,msgTo);
+	  	arguments[4]=title;
+	  	strcat(output,"<");
 	  }
 	  else{
 	  	window= windowCheck(msgFrom);
+	  	strcat(title,msgFrom);
+	  	arguments[4]=title;
+	  	strcat(output,">");
 	  }
 	  //don't need to fork, write message to child directly
 	  if(window>0){
 
-	  	write(window,msg,sizeof(msg));
+	  	strcat(output,msg);
+	  	write(window,output,sizeof(output));
 
 
 	  }else{
@@ -523,14 +547,16 @@ void openChatHandler(char*buf){
 		  		sprintf(temp,"%d",pair[child]);
 		  		arguments[7]= temp;
 
-		  		//close(pair[parentsocket]);
+		  		close(pair[parent]);
 			
 		  		execvp(arguments[0],arguments);
 		  		
 
 		  }else{
-		  		write(pair[parent],msg,sizeof(msg));
+		  		strcat(output,msg);
+		  		write(pair[parent],output,sizeof(output));
 		  		
+		  		close(pair[child]);
 		  		FD_SET(pair[parent],&read_set);
 
 	  			if(!strcmp(msgFrom,username)){
@@ -555,10 +581,13 @@ int windowCheck(char*user){
 	if(temp==NULL){
 			return -1;
 	}else{
-		while(temp->next!=NULL){
-		if(!strcmp(temp->user,user)){
-			return temp->fd;
-		}
+		while(temp!=NULL){
+			if(!strcmp(temp->user,user)){
+				return temp->fd;
+			}
+			if(temp->next==NULL){
+				break;
+			}
 			temp= temp->next;
 		}
 		return -1;
@@ -660,5 +689,27 @@ void errorPrint(){
 	color("red",2);
 	fprintf(stderr, "error: " );
 	color("white",2);
+
+}
+
+int findlast(){
+	childList* temp = childHead;
+
+	int max =0;
+	if(temp==NULL){
+		return 0;
+	}else{
+		while(temp!=NULL){
+			if(max<(temp->fd)){	
+				max = temp->fd;
+			}
+			if(temp->next==NULL){
+				break;
+			}
+			temp = temp->next;
+		}
+
+		return max;
+	}
 
 }

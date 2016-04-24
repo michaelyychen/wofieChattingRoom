@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
     read(fd,buffer,1024);
     printf("%s\n",buffer );
 
-    
+    memset(buffer,0,MAXLINE);
     scanf("%s", buffer);
 
     if(!strncmp(buffer,"/close",6)){
