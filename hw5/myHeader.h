@@ -103,3 +103,6 @@ int promtPwd(char *pwd);
 /*for singals */
 void sigInt_handler(int sigID);
 void cleanUp();
+
+void uoffHandler(char*buffer);
+void errorHandler(char*buffer);
