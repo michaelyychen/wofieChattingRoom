@@ -188,7 +188,7 @@ void addAcct(char *name, char *pwd){
 	if(accHead==NULL){
 		accHead = acct;
 		/*open account file and add to it*/
-		acctFd = Open("./Account.txt",O_RDWR|O_APPEND|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
+		acctFd = Open("./Account.txt",O_RDWR|O_TRUNC|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
 		writeV(acctFd,acct->name,sizeof(acct->name));
 		writeV(acctFd,"\n\n\n\n\n",5);
 		writeV(acctFd,(char*)acct->pwd,SHA256_DIGEST_LENGTH);
@@ -539,6 +539,8 @@ void* talkThread(void* vargp){
 		}else if(!strncmp(buf,"MSG",3)){
 
 			char *nameTo,*nameFrom;
+			char buf2[MAXLINE];
+			strcpy(buf2,buf);
 			strtok(buf," ");
 			nameTo = strtok(NULL," ");
 			nameFrom = strtok(NULL," ");
@@ -561,8 +563,8 @@ void* talkThread(void* vargp){
 			if(userTo & userFrom){
 				/*both users exists*/
 				//printf("%s\n",buf);
-				writeV(toFd,buf,MAXLINE);
-				writeV(fromFd,buf,MAXLINE);
+				writeV(toFd,buf2,MAXLINE);
+				writeV(fromFd,buf2,MAXLINE);
 
 			}else{
 				if(userTo)
