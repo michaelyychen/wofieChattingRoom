@@ -77,7 +77,7 @@ void clientCommand(int listenfd);
 
 void handleError(int error_code,int fd);
 
-int getTime(time_t current_time);
+int getTime(time_t currentTime);
 
 ssize_t Read(int fd, void*buf,size_t count);
 

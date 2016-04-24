@@ -131,10 +131,9 @@ int main (int argc, char ** argv) {
 
 		if(wait ==0){
 			wait=clientfd;
-
-		}		
+			}		
 		Select(wait+1,&ready_set);
-		
+
 		
 		/*check for input from stdin*/
 		if(FD_ISSET(STDIN_FILENO,&ready_set))
@@ -239,28 +238,51 @@ int login(){
 			strcat(buffer," \r\n\r\n");
 
 			write(clientfd,&buffer,sizeof(buffer));
+			memset(buffer,0,MAXLINE);
+			read(clientfd,buffer,MAXLINE);
 
-			char arguments[10][1024];
+			/*check if is auth*/
+			char buf[MAXLINE];
+			strcpy(buf,"AUTH ");
+			strcat(buf,username);
+			strcat(buf," \r\n\r\n");
 
-			parseArg(clientfd,arguments);
-
-			if(!strcmp(arguments[0],nameBuffer)){
-				//login sucess, print MOTD <message>
-
-				color("green",1);
-
-				printf("%s\n",arguments[1]);
-
-				color("white",1);
-
-			return 1;
-			}else{
-				//error occurs
+			if(!strcmp(buf,buffer)){
+				char pwd[64];
+				promtPwd(pwd);
+				/*send pwd to server*/
+				memset(buffer,0,MAXLINE);
+				strcpy(buffer,"PASS ");
+				strcat(buffer,pwd);
+				strcat(buffer," \r\n\r\n");
+				write(clientfd,buffer,MAXLINE);
 				
-				if(!strncmp(arguments[1],"BYE \r\n\r\n",8)){
-					write(clientfd,"BYE \r\n\r\n",8);
-				}
+				char arguments[10][1024];
+				parseArg(clientfd,arguments);
 
+				if(!strcmp(arguments[0],"SSAP \r\n\r\n")){
+					if(!strcmp(arguments[1],nameBuffer)){
+						char *token = strtok(arguments[2]," ");
+						if(!strcmp(token,"MOTD")){
+							token = strtok(NULL," ");
+							color("green",1);
+							printf("%s\n",token);
+							color("white",1);	
+						}else{
+							fprintf(stderr,"Server did not pass back MOTD\n");
+						}
+					}else{
+						fprintf(stderr,"Server did not pass back HI\n");
+						return -1;
+					}
+
+
+				}else{
+					fprintf(stderr,"Bad Password\n");
+					return -1;
+				}
+			}else{
+				fprintf(stderr,"User name exist\n");
 				return -1;
 			}
 		}
@@ -269,6 +291,7 @@ int login(){
 		return -1;
 	}
 
+	return 1;
 }
 
 int promtPwd(char *pwd){
@@ -288,7 +311,7 @@ int promtPwd(char *pwd){
 
     printf("password: ");
    
-    fgets(pwd,64, stdin);
+    fgets(pwd,64,stdin);
     pwd[strlen(pwd) - 1] = 0;
     printf("you typed '%s'\n", pwd);
 
