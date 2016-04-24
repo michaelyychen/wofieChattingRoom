@@ -37,7 +37,7 @@ char bb = 0x5B;
 char username[20];
 char host[20];
 char port[20];
-
+int verbose =0;
 int clientfd;
 int newuser = 0;
 
@@ -64,12 +64,11 @@ void addChild(int fd,char* name){
 
 }
 void sigInt_handler(int sigID){
-	write(clientfd,"BYE \r\n\r\n",8);
+	writeV(clientfd,"BYE \r\n\r\n",8);
 	char buf[MAXLINE];
 	read(clientfd,buf,8);
 	if(!strcmp(buf,"BYE \r\n\r\n")){
-		close(clientfd);
-		exit(EXIT_SUCCESS);
+		shutDown();
 	}else{
 		printf("Error handling signal INT");
 	}
@@ -107,7 +106,7 @@ int main (int argc, char ** argv) {
 			newuser = 1;
 		}
 		else if(opt == 'v'){
-
+			verbose=1;
 		}
 
 	}
@@ -172,7 +171,7 @@ int login(){
 	strcat(nameBuffer," \r\n\r\n");
 
 
-	write(clientfd,"WOLFIE \r\n\r\n",11);
+	writeV(clientfd,"WOLFIE \r\n\r\n",11);
 	read(clientfd,&buffer,11);
 
 	if(!strncmp(buffer,"EIFLOW \r\n\r\n",11)){
@@ -185,7 +184,7 @@ int login(){
 			strcat(buffer,username);
 			strcat(buffer," \r\n\r\n");
 
-			write(clientfd,&buffer,sizeof(buffer));
+			writeV(clientfd,buffer,sizeof(buffer));
 
 			char arguments[10][1024];
 
@@ -203,7 +202,7 @@ int login(){
 				strcpy(buffer,"NEWPASS ");
 				strcat(buffer,p);
 				strcat(buffer," \r\n\r\n");
-				write(clientfd,buffer,MAXLINE);
+				writeV(clientfd,buffer,MAXLINE);
 
 				/*read response from server*/
 				char arguments[10][1024];
@@ -237,7 +236,7 @@ int login(){
 			strcat(buffer,username);
 			strcat(buffer," \r\n\r\n");
 
-			write(clientfd,&buffer,sizeof(buffer));
+			writeV(clientfd,buffer,sizeof(buffer));
 			memset(buffer,0,MAXLINE);
 			read(clientfd,buffer,MAXLINE);
 
@@ -255,7 +254,7 @@ int login(){
 				strcpy(buffer,"PASS ");
 				strcat(buffer,pwd);
 				strcat(buffer," \r\n\r\n");
-				write(clientfd,buffer,MAXLINE);
+				writeV(clientfd,buffer,MAXLINE);
 				
 				char arguments[10][1024];
 				parseArg(clientfd,arguments);
@@ -353,11 +352,11 @@ void stdinCommand(){
 	if(!strcmp(buf,"/help\n")){
 		helpCommand();
 	}else if(!strcmp(buf,"/logout\n")){
-		write(clientfd,"BYE \r\n\r\n",8);
+		writeV(clientfd,"BYE \r\n\r\n",8);
 	}else if(!strcmp(buf,"/listu\n")){
-		write(clientfd,"LISTU \r\n\r\n",10);
+		writeV(clientfd,"LISTU \r\n\r\n",10);
 	}else if(!strcmp(buf,"/time\n")){
-		write(clientfd,"TIME \r\n\r\n",9);
+		writeV(clientfd,"TIME \r\n\r\n",9);
 	}else if(!strncmp(buf,"/chat",5)){
 		startChatHandler(buf);
 	}
@@ -371,8 +370,7 @@ void serverCommand(int clientfd){
 
 	//handle shut down server command
 	if(!strncmp(buffer,"BYE \r\n\r\n",8)){
-		Close(clientfd);
-		exit(EXIT_SUCCESS);
+		shutDown();
 	}
 	else if(!strncmp(buffer,"UTSIL",5)){
 		listuHandler(buffer);
@@ -380,10 +378,23 @@ void serverCommand(int clientfd){
 		timeHandler(buffer);
 	}else if(!strncmp(buffer,"MSG",3)){
 		openChatHandler(buffer);
+	}else if(!strncmp(buffer,"UOFF",4)){
+		removeChild(buffer);
 	}
 
 }
+void removeChild(char* buffer){
+	char nameToRemove[50];
+	int index = 5;
+	int i =0;
+	while(buffer[index]!=' '){
+		nameToRemove[i]=buffer[index];
+		i++;
+		index++;
+	}
+	printf("%s\n",nameToRemove );
 
+}
 void childCommand(int fd){
 
 	char buffer[1024];
@@ -399,7 +410,7 @@ void childCommand(int fd){
 	//close(pair[childsocket]);
 
 	
-	//write(pair[parent],temp,sizeof(temp));
+	//writeV(pair[parent],temp,sizeof(temp));
 	
 	childList *temp = childHead;
     while(temp!=NULL){
@@ -421,7 +432,7 @@ void childCommand(int fd){
 	strcat(responseBUf," ");
  	strcat(responseBUf,buffer);
 	strcat(responseBUf," \r\n\r\n");
-	write(clientfd,responseBUf,sizeof(responseBUf));
+	writeV(clientfd,responseBUf,sizeof(responseBUf));
 
 }
 
@@ -581,7 +592,7 @@ void startChatHandler(char*buf){
 	strcat(buffer,output[2]);
 	strcat(buffer," \r\n\r\n");
 
-	write(clientfd,buffer,sizeof(buffer));
+	writeV(clientfd,buffer,sizeof(buffer));
 
 }
 
@@ -631,11 +642,11 @@ void openChatHandler(char*buf){
 	  	arguments[4]=title;
 	  	strcat(output,">");
 	  }
-	  //don't need to fork, write message to child directly
+	  //don't need to fork, writeV message to child directly
 	  if(window>0){
 
 	  	strcat(output,msg);
-	  	write(window,output,sizeof(output));
+	  	writeV(window,output,sizeof(output));
 
 
 	  }else{
@@ -661,7 +672,7 @@ void openChatHandler(char*buf){
 
 		  }else{
 		  		strcat(output,msg);
-		  		write(pair[parent],output,sizeof(output));
+		  		writeV(pair[parent],output,sizeof(output));
 		  		
 		  		close(pair[child]);
 		  		FD_SET(pair[parent],&read_set);
@@ -818,5 +829,38 @@ int findlast(){
 
 		return max;
 	}
+
+}
+int writeV(int fd, char *s, int byte){
+	int result = write(fd,s,byte);
+	if(verbose){
+		color("green",1);
+		printf("%s\n",s);
+		color("white",1);
+	}
+	if(result == -1){
+		color("red",1);
+		fprintf(stderr,"Error on writing to FD: %d\n Error: %s\n",fd,strerror(errno));
+		color("white",1);
+	}
+	return result;
+}
+
+
+void shutDown(){
+	childList* temp = childHead;
+	childList* tempP = temp;
+
+	while(temp!=NULL){
+		tempP=temp;
+		Close(tempP->fd);
+		temp=temp->next;
+		free(tempP);
+		
+	}
+
+	Close(clientfd);
+	exit(EXIT_SUCCESS);
+
 
 }

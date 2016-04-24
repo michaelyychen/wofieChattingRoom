@@ -142,7 +142,7 @@ int main (int argc, char ** argv){
 	}
 
 	color("green",1);
-	fprintf(stdout,"Currently listening on port %s\n",argv[1]);
+	fprintf(stdout,"Currently listening on port %s\n",port);
 	color("white",1);
 
 	/*for multiIndexing*/
