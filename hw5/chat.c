@@ -98,13 +98,14 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 void shutDown(){
-
+  
   memset(buffer,0,MAXLINE);
   strcat(buffer,"remove");
   strcat(buffer," ");
   strcat(buffer,fdS);
   strcat(buffer," ");
   write(fd,buffer,1024);
+  
   exit(EXIT_SUCCESS);
 
 }

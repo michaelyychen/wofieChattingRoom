@@ -15,6 +15,7 @@
 #include <sys/un.h>
 #include <sys/select.h>
 #include <termios.h>
+
 #include "myHeader.h"
 
 #define MAXLINE 1024
@@ -74,9 +75,19 @@ void sigInt_handler(int sigID){
 	}
 }
 
+void sigChild_handler(int sigID){
+
+	if (fcntl(childHead->fd, F_GETFL) < 0 && errno == EBADF) {
+    // file descriptor is invalid or closed
+		printf("i got it\n");
+	}
+
+}
 int main (int argc, char ** argv) {
 
 	signal(SIGINT,sigInt_handler);
+	/*signal(SIGCHLD,sigChild_handler);*/
+
 
 	if(argc<4){
 	errorPrint();
@@ -312,7 +323,7 @@ int promtPwd(char *pwd){
    
     fgets(pwd,64,stdin);
     pwd[strlen(pwd) - 1] = 0;
-    printf("you typed '%s'\n", pwd);
+  
 
     /* restore terminal */
     if (tcsetattr(fileno(stdin), TCSANOW, &oflags) != 0) {
@@ -435,6 +446,7 @@ void errorHandler(char* buffer){
 		fprintf(stderr, "USER NAME TAKEN\n");
 	}else if(!strncmp(temp,"01",2)){
 		fprintf(stderr, "USER NOT AVALIABLE\n");
+		return;
 	}else if(!strncmp(temp,"02",2)){
 		fprintf(stderr, "BAD Password\n");
 	}else{
@@ -483,7 +495,6 @@ void childCommand(int fd){
 	//readin child input
 	read(fd,&buffer,sizeof(buffer));
 
-	printf("child sent baCK %s\n",buffer );
 
 	if(!strncmp(buffer,"remove",6)){
 		removeChild(buffer);
@@ -709,9 +720,6 @@ void openChatHandler(char*buf){
 	  
 	  parseMSG(buf,msgTo,msgFrom,msg);
 
-	  printf("%s\n",msgTo );
-	  printf("%s\n",msgFrom );
-	  printf("%s\n",msg );
 
 	   memset(output,0,sizeof(output));
 	  //if from=myself, check if we have chat window open with msgTo 

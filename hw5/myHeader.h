@@ -82,7 +82,7 @@ int getTime(time_t currentTime);
 ssize_t Read(int fd, void*buf,size_t count);
 
 int checkLogin(char *name, int exist);
-
+void sigChild_handler(int sigID);
 void removeChild(char* buf);
 void users();
 void shutDown();

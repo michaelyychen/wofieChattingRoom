@@ -22,6 +22,7 @@
 #define nameTaken 0
 #define notAvailable 1
 #define badPassword 2
+#define notAvailableLog 3
 #define serverError 100
 
 struct User{
@@ -251,7 +252,7 @@ int checkPwd(char * pwd){
 		return 0;
 
 	while(count>0){
-		printf("%c",*temp);
+		
 		if(*temp>='0' && *temp<='9')
 			number = 1;
 		else if(*temp>='A' && *temp<='Z')
@@ -356,8 +357,7 @@ int compareHash(char *name, char *pwd){
 }
 
 void *loginThread(void *Cpair){
-	printf("---------login thread-------\n");
-
+	
 	int log = 1;
 	/*read from client*/
 	communicatePair *pair = Cpair;
@@ -634,9 +634,9 @@ void* talkThread(void* vargp){
 
 			}else{
 				if(userTo)
-					handleError(notAvailable,toFd);
+					handleError(notAvailableLog,toFd);
 				else
-					handleError(notAvailable,fromFd);
+					handleError(notAvailableLog,fromFd);
 				
 			}
 
@@ -728,6 +728,9 @@ void handleError(int error_code,int fd){
 	}else if(error_code==badPassword){
 		writeV(fd,"ERR 02 BAD PASSWORD \r\n\r\nBYE \r\n\r\n",50);
 		Close(fd);
+	}else if(error_code==notAvailableLog){
+		writeV(fd,"ERR 01 USER NOT AVAILABLE \r\n\r\nBYE \r\n\r\n",50);
+		
 	}else{
 
 	}
