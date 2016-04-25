@@ -15,6 +15,8 @@
 #include <sys/select.h>
 #include "myHeader.h"
 
+
+
 #define MAXLINE 1024
 int socketFD;
 
@@ -80,7 +82,7 @@ int main(int argc, char *argv[]) {
     if(FD_ISSET(fd,&ready_set)){
       read(fd,buffer,1024);
       if(!strncmp(buffer,"disconnect",10)){
-         fgets(buffer,1024,stdin);
+         read(1,buffer,1);
          shutDown();
       }
       printf("%s\n",buffer );

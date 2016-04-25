@@ -201,10 +201,14 @@ void addAcct(char *name, char *pwd){
 
 	getHash((void*)acct,pwd);
 
+	acct->next = NULL;
+
 	accountList *temp = accHead;
 
-	while(temp!=NULL){
-		temp = temp->next;
+	if(temp!=NULL){
+		while(temp->next!=NULL){
+			temp = temp->next;
+		}
 	}
 
 	if(accHead==NULL){
@@ -220,7 +224,7 @@ void addAcct(char *name, char *pwd){
 
 	}
 	else{
-		temp = acct;
+		temp->next = acct;
 		writeV(acctFd,acct->name,sizeof(acct->name));
 		writeV(acctFd,"\n\n\n\n\n",5);
 		writeV(acctFd,(char*)acct->pwd,SHA256_DIGEST_LENGTH);
@@ -592,7 +596,7 @@ void* talkThread(void* vargp){
 
 			memset(buf,0,MAXLINE);
 			strcpy(buf,"BYE \r\n\r\n");
-			writeV(user->clientSock,buf,MAXLINE);
+			writeV(user->clientSock,buf,8);
 			removeUser(user->clientSock);
 			break;
 
@@ -621,14 +625,10 @@ void* talkThread(void* vargp){
 				temp = temp->next;
 			}
 
-			if(userTo & userFrom){
-				/*both users exists*/
-				//printf("%s\n",buf);
-			
+			if(userTo && userFrom){
 
 				writeV(toFd,buf2,MAXLINE);
 				
-				printf("%d\n",fromFd);
 				writeV(fromFd,buf3,MAXLINE);
 				
 
@@ -685,8 +685,14 @@ void removeUser(int fd){
 		temp = temp->next;
 	}
 	/*clean up */
-	if(temp == userHead)
-		userHead = NULL;
+	if(temp == userHead){
+		if(temp->next != NULL){
+			userHead = userHead->next;
+		}else{
+			userHead = NULL;
+		}
+	}
+	
 
 	strcpy(name,temp->name);
 
@@ -814,6 +820,7 @@ void shutDown(){
 }
 
 void cleanUp(){
+
 	User *temp = userHead;
 	while(temp!=NULL){
 		User *temp2 = temp;
@@ -822,6 +829,16 @@ void cleanUp(){
 		temp = temp->next;
 		free(temp2);
 	}
+
+	accountList *acc = accHead;
+	accountList *accP = acc;
+
+	while(acc!=NULL){
+		accP = acc;
+		acc = acc->next;
+		free(accP);
+	}
+
 	Close(listenfd);
 }
 

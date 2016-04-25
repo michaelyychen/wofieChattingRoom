@@ -364,7 +364,7 @@ void stdinCommand(){
 }
 
 void serverCommand(int clientfd){
-	char buffer[50];
+	char buffer[MAXLINE];
 	memset(buffer,0,sizeof(buffer));
 	read(clientfd,&buffer,sizeof(buffer));
 
@@ -390,30 +390,31 @@ void serverCommand(int clientfd){
 }
 
 void uoffHandler(char* buffer){
-	char temp[100];
-	int index =4;
-	int i =0;
+
+
 	int fd =0;
 	childList* ptr = childHead;
+/*
 	while(buffer[index]!=' '){
 		temp[i]=buffer[index];
 		index++;
 		i++;
-	}
-
+	}*/
+	char *token = strtok(buffer," ");
+	token = strtok(NULL," ");
+	
 	while(ptr!=NULL){
-		if(!strcmp(ptr->user,temp)){
+		if(!strcmp(ptr->user,token)){
 			fd = ptr->fd;
+			break;
 		}
 		ptr = ptr->next;
 	}
 
 	if(fd!=0){
+		printf("remove %s\n",token );
 		write(fd,"disconnect",10);
 	}
-
-
-
 
 }
 
