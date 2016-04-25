@@ -101,13 +101,6 @@ int main (int argc, char ** argv) {
 	strcpy(host,argv[2]);
 	strcpy(port,argv[3]);
 
-	if((clientfd=open_clientfd(argv[2],argv[3])) < 0){
-		errorPrint();
-		fprintf(stderr,"Open client fd failed\n");
-		exit(0);
-
-	}
-
 	int opt = 0;
 	while((opt = getopt(argc,argv,"hcv")) != -1){
 		if(opt == 'h'){
@@ -121,6 +114,15 @@ int main (int argc, char ** argv) {
 		}
 
 	}
+
+	if((clientfd=open_clientfd(host,port)) < 0){
+		errorPrint();
+		fprintf(stderr,"Open client fd failed\n");
+		exit(0);
+
+	}
+
+	
 
 	
 	if(login()<0){
@@ -657,27 +659,15 @@ void startChatHandler(char*buf){
 	char output[3][MAXLINE];
 
 	memset(buffer,0,1024);
-	int i =0;
-	int j =0;
-	int index=0;
-
-	while(i<strlen(buf)){
-
-		if(index!=2&&buf[i]==' '){
-			index++;
-			i++;
-			j=0;
-		}
-		if(index==2&&buf[i]=='\n'){
-			output[index][j]=0;
-			break;
-		}
-
-		output[index][j]=buf[i];
-		i++;
-		j++;
-	}
 	
+
+	char *token = strtok(buf," ");
+	token = strtok(NULL," ");
+	strcpy(output[1],token);
+	token = strtok(NULL," ");
+	strcpy(output[2],token);
+	
+	printf("%s\n",output[1] );	
 	//construct output protocol
 	strcat(buffer,"MSG");
 	strcat(buffer," ");
@@ -946,6 +936,7 @@ void shutDown(){
 
 	while(temp!=NULL){
 		tempP=temp;
+		write(tempP->fd,"disconnect",10);
 		Close(tempP->fd);
 		temp=temp->next;
 		free(tempP);
