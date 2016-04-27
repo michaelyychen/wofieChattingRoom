@@ -71,7 +71,7 @@ void sigInt_handler(int sigID){
 	if(!strcmp(buf,"BYE \r\n\r\n")){
 		shutDown();
 	}else{
-		printf("Error handling signal INT");
+		//printf("Error handling signal INT");
 	}
 }
 
