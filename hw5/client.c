@@ -197,8 +197,8 @@ int login(){
 			strcat(buffer,username);
 			strcat(buffer," \r\n\r\n");
 
-			writeV(clientfd,buffer,sizeof(buffer));
-
+			writeV(clientfd,buffer,12+strlen(username));
+			printf("%lu\n",12+strlen(username));
 			char arguments[10][1024];
 
 			parseArg(clientfd,arguments);
@@ -210,13 +210,14 @@ int login(){
 			if(!strcmp(arguments[0],buffer)){
 				/*prompt user for password*/
 				char p[64];
+				memset(p,0,64);
 				promtPwd(p);
 				memset(buffer,0,MAXLINE);
 				strcpy(buffer,"NEWPASS ");
 				strcat(buffer,p);
 				strcat(buffer," \r\n\r\n");
-				writeV(clientfd,buffer,MAXLINE);
-
+				writeV(clientfd,buffer,13+strlen(p));
+				printf("%lu\n",13+strlen(p));
 				/*read response from server*/
 				char arguments[10][1024];
 
@@ -249,7 +250,8 @@ int login(){
 			strcat(buffer,username);
 			strcat(buffer," \r\n\r\n");
 
-			writeV(clientfd,buffer,sizeof(buffer));
+			writeV(clientfd,buffer,9+strlen(username));
+			printf("%lu\n",9+strlen(username));
 			memset(buffer,0,MAXLINE);
 			read(clientfd,buffer,MAXLINE);
 
@@ -261,14 +263,16 @@ int login(){
 
 			if(!strcmp(buf,buffer)){
 				char pwd[64];
+				memset(pwd,0,64);
 				promtPwd(pwd);
+				
 				/*send pwd to server*/
 				memset(buffer,0,MAXLINE);
 				strcpy(buffer,"PASS ");
 				strcat(buffer,pwd);
 				strcat(buffer," \r\n\r\n");
-				writeV(clientfd,buffer,MAXLINE);
-				
+				writeV(clientfd,buffer,10+strlen(pwd));
+				printf("%lu\n",10+strlen(pwd));
 				char arguments[10][1024];
 				parseArg(clientfd,arguments);
 
@@ -530,8 +534,8 @@ void childCommand(int fd){
 	strcat(responseBUf," ");
  	strcat(responseBUf,buffer);
 	strcat(responseBUf," \r\n\r\n");
-	writeV(clientfd,responseBUf,sizeof(responseBUf));
-
+	writeV(clientfd,responseBUf,11+strlen(msgTo)+strlen(username)+strlen(buffer));
+	printf("%lu\n", 11+strlen(msgTo)+strlen(username)+strlen(buffer));
 }
 
 int open_clientfd(char * hostname, char * port){
@@ -678,8 +682,8 @@ void startChatHandler(char*buf){
 	strcat(buffer,output[2]);
 	strcat(buffer," \r\n\r\n");
 
-	writeV(clientfd,buffer,sizeof(buffer));
-
+	writeV(clientfd,buffer,11+strlen(output[1])+strlen(output[2])+strlen(username));
+	printf("%lu\n",11+strlen(output[1])+strlen(output[2])+strlen(username));
 }
 
 void openChatHandler(char*buf){
@@ -755,8 +759,8 @@ void openChatHandler(char*buf){
 
 		  }else{
 		  		strcat(output,msg);
-		  		writeV(pair[parent],output,sizeof(output));
-		  		
+		  		writeV(pair[parent],output,strlen(output));
+		  		printf("%lu\n",strlen(output) );
 		  		close(pair[child]);
 		  		FD_SET(pair[parent],&read_set);
 
