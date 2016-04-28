@@ -223,8 +223,10 @@ int login(){
 
 				parseArg(clientfd,arguments);
 
-				if(!strcmp(arguments[1],nameBuffer)){
+				if(!strncmp(arguments[0],"SSAPWEN",7)){
 
+				read(clientfd,buffer,MAXLINE);
+				printf("inside2 %s\n",buffer );
 					color("green",1);
 
 					printf("%s\n",arguments[2]);
@@ -233,14 +235,16 @@ int login(){
 
 					return 1;
 				}else{
-
+					printf("here %s\n",arguments[0] );
+					printf("aa%s\n",arguments[1] );
+					
 					printf("Error bad password\n");
 					return -1;
 				}
 
 
 			}else{
-				printf("Error bad username\n");
+				printf("%s\n",arguments[0]);
 				return -1;
 			}
 
@@ -276,7 +280,7 @@ int login(){
 				char arguments[10][1024];
 				parseArg(clientfd,arguments);
 
-				if(!strcmp(arguments[0],"SSAP \r\n\r\n")){
+				if(!strncmp(arguments[0],"SSAP \r\n\r\n",9)){
 					if(!strcmp(arguments[1],nameBuffer)){
 						char *token = strtok(arguments[2]," ");
 						if(!strcmp(token,"MOTD")){
@@ -344,6 +348,8 @@ void parseArg(int fd,char arguments[10][1024]){
 
 	char buf[MAXLINE],*temp;
 	read(fd,buf,MAXLINE);
+	printf("inside %s\n",buf );
+
 	//printf("%s\n",buf);
 	char con[4] = "\r\n\r\n";
 	temp = strtok(buf,con);
