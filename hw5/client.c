@@ -177,6 +177,7 @@ int main (int argc, char ** argv) {
 int login(){
 	char buffer[MAXLINE];
 	char nameBuffer[20];		//HI_<name>_\r\n\r\n
+	char * ptr;
 
 	memset(nameBuffer,0,sizeof(nameBuffer));
 	strcat(nameBuffer,"HI ");
@@ -198,16 +199,16 @@ int login(){
 			strcat(buffer," \r\n\r\n");
 
 			writeV(clientfd,buffer,12+strlen(username));
-			printf("%lu\n",12+strlen(username));
-			char arguments[10][1024];
 
-			parseArg(clientfd,arguments);
+			char arguments[1024];
+
+			read(clientfd,arguments,MAXLINE);
 
 			strcpy(buffer,"HINEW ");
 			strcat(buffer,username);
 			strcat(buffer," \r\n\r\n");
 
-			if(!strcmp(arguments[0],buffer)){
+			if(!strcmp(arguments,buffer)){
 				/*prompt user for password*/
 				char p[64];
 				memset(p,0,64);
@@ -217,34 +218,44 @@ int login(){
 				strcat(buffer,p);
 				strcat(buffer," \r\n\r\n");
 				writeV(clientfd,buffer,13+strlen(p));
-				printf("%lu\n",13+strlen(p));
+			
 				/*read response from server*/
-				char arguments[10][1024];
+				char arguments1[1024];
+				read(clientfd,arguments1,MAXLINE);
+				
+				
+				//read(clientfd,arguments3,MAXLINE);
+				
+			
+				
+				//printf("3 %s\n",arguments3 );
+				if(!strncmp(arguments1,"SSAPWEN",7)){
 
-				parseArg(clientfd,arguments);
+				
+					char arguments2[1024];
+					read(clientfd,arguments2,MAXLINE);
 
-				if(!strncmp(arguments[0],"SSAPWEN",7)){
-
-				read(clientfd,buffer,MAXLINE);
-				printf("inside2 %s\n",buffer );
 					color("green",1);
 
-					printf("%s\n",arguments[2]);
+					printf("%s\n",arguments2);
 
 					color("white",1);
 
 					return 1;
 				}else{
-					printf("here %s\n",arguments[0] );
-					printf("aa%s\n",arguments[1] );
 					
-					printf("Error bad password\n");
+					
+					ptr = strtok(arguments1,"\r\n\r\n");	
+					printf("%s\n",ptr );
+							
 					return -1;
 				}
 
 
 			}else{
-				printf("%s\n",arguments[0]);
+							ptr = strtok(arguments,"\r\n\r\n");	
+					printf("%s\n",ptr );
+							
 				return -1;
 			}
 
@@ -255,7 +266,7 @@ int login(){
 			strcat(buffer," \r\n\r\n");
 
 			writeV(clientfd,buffer,9+strlen(username));
-			printf("%lu\n",9+strlen(username));
+			
 			memset(buffer,0,MAXLINE);
 			read(clientfd,buffer,MAXLINE);
 
@@ -276,33 +287,37 @@ int login(){
 				strcat(buffer,pwd);
 				strcat(buffer," \r\n\r\n");
 				writeV(clientfd,buffer,10+strlen(pwd));
-				printf("%lu\n",10+strlen(pwd));
-				char arguments[10][1024];
-				parseArg(clientfd,arguments);
+				
+				char arguments[1024];
+				//parseArg(clientfd,arguments);
+				read(clientfd,arguments,MAXLINE);
+				if(!strncmp(arguments,"SSAP \r\n\r\n",9)){
 
-				if(!strncmp(arguments[0],"SSAP \r\n\r\n",9)){
-					if(!strcmp(arguments[1],nameBuffer)){
-						char *token = strtok(arguments[2]," ");
-						if(!strcmp(token,"MOTD")){
-							token = strtok(NULL," ");
+					memset(arguments,0,MAXLINE);
+					read(clientfd,arguments,MAXLINE);
+
+					if(!strncmp(arguments,nameBuffer,3)){
+					
+
+				
 							color("green",1);
-							printf("%s\n",token);
+							printf("%s\n",arguments);
 							color("white",1);	
-						}else{
-							fprintf(stderr,"Server did not pass back MOTD\n");
-						}
-					}else{
-						fprintf(stderr,"Server did not pass back HI\n");
-						return -1;
+					
+						return 1;
 					}
 
 
 				}else{
-					fprintf(stderr,"Bad Password\n");
+					ptr = strtok(arguments,"\r\n\r\n");	
+					printf("%s\n",ptr );
+							
 					return -1;
 				}
 			}else{
-				fprintf(stderr,"User name exist\n");
+					ptr = strtok(buffer,"\r\n\r\n");	
+					printf("%s\n",ptr );
+							
 				return -1;
 			}
 		}
@@ -541,7 +556,7 @@ void childCommand(int fd){
  	strcat(responseBUf,buffer);
 	strcat(responseBUf," \r\n\r\n");
 	writeV(clientfd,responseBUf,11+strlen(msgTo)+strlen(username)+strlen(buffer));
-	printf("%lu\n", 11+strlen(msgTo)+strlen(username)+strlen(buffer));
+
 }
 
 int open_clientfd(char * hostname, char * port){
@@ -689,7 +704,7 @@ void startChatHandler(char*buf){
 	strcat(buffer," \r\n\r\n");
 
 	writeV(clientfd,buffer,11+strlen(output[1])+strlen(output[2])+strlen(username));
-	printf("%lu\n",11+strlen(output[1])+strlen(output[2])+strlen(username));
+
 }
 
 void openChatHandler(char*buf){
@@ -766,7 +781,7 @@ void openChatHandler(char*buf){
 		  }else{
 		  		strcat(output,msg);
 		  		writeV(pair[parent],output,strlen(output));
-		  		printf("%lu\n",strlen(output) );
+		
 		  		close(pair[child]);
 		  		FD_SET(pair[parent],&read_set);
 
