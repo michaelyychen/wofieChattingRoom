@@ -67,16 +67,11 @@ int main (int argc, char ** argv){
 	signal(SIGINT,sigInt_handler);
 
 	/*check for arguments*/
-	if(argc < 3){
-		color("red",1);
-		fprintf(stderr,"Missing argument\n");
-		color("white",1);
-		exit(0);
-		}
 
-	welcomeMessage = argv[2];
-	strcpy(port,argv[1]);
-	
+	if(argc >= 3){
+		welcomeMessage = argv[2];
+		strcpy(port,argv[1]);
+	}
 
 	/*check if account list if provided*/
 	if(argc >=4){
@@ -87,35 +82,7 @@ int main (int argc, char ** argv){
 			acctFd = Open(argv[i],O_RDWR|O_APPEND,S_IWUSR|S_IRUSR|S_IXUSR);
 			if(acctFd>0){
 				/*initilize account link list*/
-				printf("file exit\n");
-				/*
-				struct stat st;
-				stat(argv[i],&st);
-				int size = st.st_size;
-				accountList *acctTemp = accHead;
-				char buf[size];
-				if(Read(acctFd,buf,size)>0){
-					
-					char *temp = buf;
-					while(size>0){
-						accountList *acct = malloc(sizeof(accountList));
-						memcpy(acct->name,temp,1000);
-						temp += 1005;
-						memcpy(acct->pwd,temp,32);
-						temp += 37;
-						memcpy(acct->salt,temp,5);
-						size -= 1052;
-						acct->next = NULL;
-						if(accHead==NULL){
-							accHead = acct;
-							acctTemp = accHead;
-						}else{
-							acctTemp->next = acct;
-							acctTemp = acctTemp->next;
-						}
-					}
-
-				}*/
+				
 				accountList *acctTemp = accHead;
 				char buf[1000];
 				
@@ -157,6 +124,13 @@ int main (int argc, char ** argv){
 		}
 
 	}
+
+	if(argc < 3){
+		color("red",1);
+		fprintf(stderr,"Missing argument\n");
+		color("white",1);
+		exit(0);
+		}
 
 	if((listenfd = open_listenfd(port)) < 0){
 		color("red",1);
@@ -604,13 +578,16 @@ void* talkThread(void* vargp){
 
 			char *nameTo,*nameFrom;
 			char buf2[MAXLINE],buf3[MAXLINE];
+
 			strcpy(buf2,buf);
 			strcpy(buf3,buf);
+
 			strtok(buf," ");
 			nameTo = strtok(NULL," ");
 			nameFrom = strtok(NULL," ");
 			/*check if both users exist*/
 			int userTo = 0, toFd , userFrom = 0, fromFd;
+			
 			User *temp = userHead;
 
 			while(temp != NULL){
@@ -958,16 +935,16 @@ int Getaddrinfo(const char* host,
 }
 
 void HELP(){
-	fprintf(stdout,"Client Usage:\n \
+	fprintf(stdout,"Server Usage:\n \
 	./server [-hv] SERVER_PORT MOTD\n \
-	-h					Displays this help menu, and returns EXIT_SUCCESS.\n \
-	-v					Verbose print all incoming and outgoing protocol verbs&content.\n \
-	SERVER_PORT			Port number of server\n \
-	MOTD				Message of today\n \
-	/users				Print a list of user currently logged in\n \
-	/accts 				Print a list of accounts \n \
-	/help				Print this list of commands	and exit\n \
-	/shutDown			Close all socket, files and free heap memory then terminate\n");
+	-h				Displays this help menu, and returns EXIT_SUCCESS.\n \
+	-v				Verbose print all incoming and outgoing protocol verbs&content.\n \
+	SERVER_PORT		Port number of server\n \
+	MOTD			Message of today\n \
+	/users			Print a list of user currently logged in\n \
+	/accts 			Print a list of accounts \n \
+	/help			Print this list of commands	and exit\n \
+	/shutDown		Close all socket, files and free heap memory then terminate\n");
 	shutDown();
 	exit(0);
 }
