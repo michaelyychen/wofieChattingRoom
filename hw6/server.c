@@ -15,6 +15,8 @@
 #include <pthread.h>
 #include <openssl/sha.h>
 #include <openssl/rand.h>
+#include "sfwrite.h"
+
 #include "myHeader.h"
 
 #define _GUN_SOURCE
@@ -60,10 +62,15 @@ char *welcomeMessage;
 char port[20];
 User *userHead = NULL;
 accountList *accHead = NULL;
+pthread_mutex_t mut;
 
 int main (int argc, char ** argv){
 
 
+	pthread_mutex_init(&mut,NULL);
+	char * ccc = "%s,%d hahahah\n";
+	sfwrite(&mut,stdout,ccc,"11111",2);
+	printf("adsfkjasd\n");
 	signal(SIGINT,sigInt_handler);
 
 	/*check for arguments*/
@@ -162,6 +169,7 @@ int main (int argc, char ** argv){
 
 	exit(0);
 }
+
 
 void addAcct(char *name, char *pwd){
 
@@ -938,6 +946,7 @@ void HELP(){
 	fprintf(stdout,"Server Usage:\n \
 	./server [-hv] SERVER_PORT MOTD\n \
 	-h				Displays this help menu, and returns EXIT_SUCCESS.\n \
+	-t THREAD_COUNT The number of threads used for the login queue. \n \
 	-v				Verbose print all incoming and outgoing protocol verbs&content.\n \
 	SERVER_PORT		Port number of server\n \
 	MOTD			Message of today\n \
