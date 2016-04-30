@@ -1,6 +1,6 @@
 
 
-
+void readB(int fd, char arg[]);
 
 int open_clientfd(char * hostname, char * port);
 
