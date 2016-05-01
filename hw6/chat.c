@@ -24,7 +24,7 @@ char *buf = "temp";
 char buffer[1024];
 char fdS[20];
 int fd;
-
+int logFD;
 
 void sigInt_handler(int sigID){
    shutDown();
@@ -37,19 +37,20 @@ int main(int argc, char *argv[]) {
 
   signal(SIGINT,sigInt_handler);
 
-  if(argc<2){
+  if(argc<3){
 
   fprintf(stderr,"Chat Usage:\n" );
   fprintf(stderr,
-  "./chat UNIX_SOCKET_FD             \n \
-   UNIX_SOCKET_FD The Number of FD to connect to. \n");
+  "./chat UNIX_SOCKET_FD AUDIT_FILE_FD             \n \
+   UNIX_SOCKET_FD The Number of FD to connect to. \n \
+   AUDIT_FILE_FD The file descriptor of the audit file created in the cilent");
   exit(0);
 
   }
 
   strcpy(fdS,argv[1]);
   fd= stringToInt(argv[1]);
-
+  logFD = stringToInt(argv[2]);
   fd_set read_set,ready_set;
 
   char * index;
@@ -100,7 +101,8 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 void shutDown(){
-  
+
+
   memset(buffer,0,MAXLINE);
   strcat(buffer,"remove");
   strcat(buffer," ");

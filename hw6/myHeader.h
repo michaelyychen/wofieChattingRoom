@@ -10,6 +10,7 @@ int Close(int clientfd);
 
 void Select(int n,fd_set *set);
 
+void auditHandler();
 //printout usage table
 void HELP();
 //printout all the commands client accepts
@@ -17,9 +18,11 @@ void helpCommand();
 
 void serverCommand(int clientfd);
 
+void createLog();
+void addLog(char*msg);
 void startChat();
 //positive = login success o.w. failed
-int login();
+int login(char*host,char*port);
 
 void timeHandler(char* buf);
 

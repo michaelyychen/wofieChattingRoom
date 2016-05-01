@@ -15,9 +15,10 @@
 #include <sys/un.h>
 #include <sys/select.h>
 #include <termios.h>
-
+#include <pthread.h>
+#include <time.h>
 #include "myHeader.h"
-
+#include "sfwrite.h"
 #define MAXLINE 1024
 
 struct args{
@@ -38,12 +39,17 @@ char bb = 0x5B;
 char username[20];
 char host[20];
 char port[20];
+char path[20];
+int audit=0;
 int verbose =0;
 int clientfd;
 int newuser = 0;
-
+int logFD=0;
+FILE *logS;
 fd_set read_set,ready_set;
 struct childList* childHead=NULL;
+pthread_mutex_t mut;
+char logBuffer[1024];
 
 void addChild(int fd,char* name){
 	childList *child = malloc(sizeof(childList));
@@ -88,7 +94,8 @@ int main (int argc, char ** argv) {
 	signal(SIGINT,sigInt_handler);
 	/*signal(SIGCHLD,sigChild_handler);*/
 
-
+	pthread_mutex_init(&mut,NULL);
+	
 	if(argc<4){
 	errorPrint();
 	fprintf(stderr,"Missing arguments \n");
@@ -101,8 +108,10 @@ int main (int argc, char ** argv) {
 	strcpy(host,argv[2]);
 	strcpy(port,argv[3]);
 
+
 	int opt = 0;
-	while((opt = getopt(argc,argv,"hcv")) != -1){
+	
+	while((opt = getopt(argc,argv,"hcva")) != -1){
 		if(opt == 'h'){
 			HELP();
 			exit(EXIT_SUCCESS);
@@ -111,9 +120,23 @@ int main (int argc, char ** argv) {
 		}
 		else if(opt == 'v'){
 			verbose=1;
+		}else if(opt == 'a'){
+			audit=1;
 		}
-
+		
 	}
+
+	if(audit>0){
+		int index=0;
+		while(index<argc){
+			if(!strcmp(argv[index],"-a")){
+				strcpy(path,argv[index+1]);
+				break;
+			}
+			index++;
+		}
+	}
+	printf("path %s\n",path );
 
 	if((clientfd=open_clientfd(host,port)) < 0){
 		errorPrint();
@@ -121,11 +144,11 @@ int main (int argc, char ** argv) {
 		exit(0);
 
 	}
+	memset(logBuffer,0,1024);
+	createLog();
 
 	
-
-	
-	if(login()<0){
+	if(login(host,port)<0){
 		errorPrint();
 		fprintf(stderr, "Login response failed\n" );
 		Close(clientfd);
@@ -174,9 +197,10 @@ int main (int argc, char ** argv) {
 }
 
 //positive = login success o.w. failed
-int login(){
+int login(char*host,char*port){
 	char buffer[MAXLINE];
 	char nameBuffer[20];		//HI_<name>_\r\n\r\n
+
 	char * ptr;
 
 	memset(nameBuffer,0,sizeof(nameBuffer));
@@ -243,22 +267,32 @@ int login(){
 					printf("%s\n",arguments3);
 
 					color("white",1);
+					ptr = strtok(arguments3,"\r\n\r\n");	
+
+					sprintf(logBuffer,", %s, LOGIN, %s:%s, success, %s\n",username,host,port,ptr);
+				
+					addLog(logBuffer);
+
 
 					return 1;
 				}else{
 					
 					
 					ptr = strtok(arguments1,"\r\n\r\n");	
+					errorPrint();
 					printf("%s\n",ptr );
-							
+					sprintf(logBuffer,", %s, LOGIN, %s:%s, fail, %s\n",username,host,port,ptr);		
+					addLog(logBuffer);
 					return -1;
 				}
 
 
 			}else{
 					ptr = strtok(arguments,"\r\n\r\n");	
+					errorPrint();
 					printf("%s\n",ptr );
-							
+					sprintf(logBuffer,", %s, LOGIN, %s:%s, fail, %s\n",username,host,port,ptr);			
+					addLog(logBuffer);
 				return -1;
 			}
 
@@ -307,26 +341,33 @@ int login(){
 
 					if(!strncmp(arguments,nameBuffer,3)){
 					
-
+					color("green",1);
+					printf("%s\n",arguments2);
+					color("white",1);	
+					ptr = strtok(arguments2,"\r\n\r\n");	
+					char logBuffer[1024];
+					memset(logBuffer,0,1024);
+					sprintf(logBuffer,", %s, LOGIN, %s:%s, success, %s\n",username,host,port,ptr);
 				
-							color("green",1);
-							printf("%s\n",arguments2);
-							color("white",1);	
-					
+					addLog(logBuffer);
 						return 1;
 					}
 
 
 				}else{
 					ptr = strtok(arguments,"\r\n\r\n");	
+					errorPrint();
 					printf("%s\n",ptr );
-							
+					sprintf(logBuffer,", %s, LOGIN, %s:%s, fail, %s\n",username,host,port,ptr);			
+					addLog(logBuffer);
 					return -1;
 				}
 			}else{
 					ptr = strtok(buffer,"\r\n\r\n");	
+					errorPrint();
 					printf("%s\n",ptr );
-							
+					sprintf(logBuffer,", %s, LOGIN, %s:%s, fail, %s\n",username,host,port,ptr);			
+					addLog(logBuffer);
 				return -1;
 			}
 		}
@@ -412,18 +453,39 @@ void parseArg(int fd,char arguments[10][1024]){
 void stdinCommand(){
 
 	char buf[MAXLINE];
+	char * ptr;
 	if(!fgets(buf,MAXLINE,stdin))
 		exit(0);
 	if(!strcmp(buf,"/help\n")){
 		helpCommand();
+		sprintf(logBuffer,", %s, CMD, /help, success, client\n",username);	
+		addLog(logBuffer);
 	}else if(!strcmp(buf,"/logout\n")){
 		writeV(clientfd,"BYE \r\n\r\n",8);
+		sprintf(logBuffer,", %s, CMD, /logout, success, client\n",username);	
+		addLog(logBuffer);
 	}else if(!strcmp(buf,"/listu\n")){
 		writeV(clientfd,"LISTU \r\n\r\n",10);
+		sprintf(logBuffer,", %s, CMD, /listu, success, client\n",username);	
+		addLog(logBuffer);
 	}else if(!strcmp(buf,"/time\n")){
 		writeV(clientfd,"TIME \r\n\r\n",9);
+		sprintf(logBuffer,", %s, CMD, /time, success, client\n",username);	
+		addLog(logBuffer);
 	}else if(!strncmp(buf,"/chat",5)){
 		startChatHandler(buf);
+		sprintf(logBuffer,", %s, CMD, /chat, success, client\n",username);	
+		addLog(logBuffer);
+
+	}else if(!strncmp(buf,"/audit",6)){
+		auditHandler();
+		sprintf(logBuffer,", %s, CMD, /audit, success, client\n",username);	
+		addLog(logBuffer);
+	
+	}else{
+		ptr = strtok(buf,"\n");
+		sprintf(logBuffer,", %s, CMD, %s, failure, client\n",username,ptr);	
+		addLog(logBuffer);
 	}
 
 }
@@ -435,6 +497,8 @@ void serverCommand(int clientfd){
 
 	//handle shut down server command
 	if(!strncmp(buffer,"BYE \r\n\r\n",8)){
+		sprintf(logBuffer,", %s, LOGOUT, intentional\n",username);	
+		addLog(logBuffer);
 		shutDown();
 	}
 	else if(!strncmp(buffer,"UTSIL",5)){
@@ -453,7 +517,21 @@ void serverCommand(int clientfd){
 
 
 }
+void auditHandler(){
 
+	int c;
+
+   	fseek(logS,0,SEEK_SET);   
+	  
+	while(1){
+      c = fgetc(logS);
+      if(feof(logS)){ 
+         break ;
+      }
+      sfwrite(&mut,stdout,"%c",c);
+   	}
+
+}
 void uoffHandler(char* buffer){
 
 
@@ -498,15 +576,31 @@ void errorHandler(char* buffer){
 	if(!strncmp(temp,"00",2)){
 		
 		fprintf(stderr, "USER NAME TAKEN\n");
+		sprintf(logBuffer,", %s, ERR, ERR 00 USER NAME TAKEN\n",username);	
+		addLog(logBuffer);
+
 	}else if(!strncmp(temp,"01",2)){
 		fprintf(stderr, "USER NOT AVALIABLE\n");
+
+		sprintf(logBuffer,", %s, ERR, ERR 01 USER NOT AVALIABLE\n",username);	
+		addLog(logBuffer);
+
 		return;
 	}else if(!strncmp(temp,"02",2)){
 		fprintf(stderr, "BAD Password\n");
+
+		sprintf(logBuffer,", %s, ERR, ERR 02 BAD PASSWORD\n",username);	
+		addLog(logBuffer);
+
 	}else{
 		fprintf(stderr, "INTERNAL SERVER ERROR\n");
-	}
 
+		sprintf(logBuffer,", %s, ERR, ERR 100 INTERNAL SERVER ERROR\n",username);	
+		addLog(logBuffer);
+
+	}
+	sprintf(logBuffer,", %s, LOGOUT, error\n",username);	
+	addLog(logBuffer);
 	shutDown();
 }
 void removeChild(char* buffer){
@@ -551,6 +645,9 @@ void childCommand(int fd){
 
 
 	if(!strncmp(buffer,"remove",6)){
+
+		sprintf(logBuffer,", %s, CMD, /close, success, chat\n",username);	
+		addLog(logBuffer);
 		removeChild(buffer);
 		return;
 	}
@@ -770,12 +867,16 @@ void openChatHandler(char*buf){
 	  	strcat(title,msgTo);
 	  	arguments[4]=title;
 	  	strcat(output,"<");
+	    sprintf(logBuffer,", %s, to, %s, %s\n",username,msgTo,msg);	
+		addLog(logBuffer);
 	  }
 	  else{
 	  	window= windowCheck(msgFrom);
 	  	strcat(title,msgFrom);
 	  	arguments[4]=title;
 	  	strcat(output,">");
+	  	sprintf(logBuffer,", %s, from, %s, %s\n",username,msgFrom,msg);	
+	  	addLog(logBuffer);
 	  }
 	  //don't need to fork, writeV message to child directly
 	  if(window>0){
@@ -797,9 +898,13 @@ void openChatHandler(char*buf){
 
 		  		char temp[10];
 		  		memset(temp,0,10);
-		  		sprintf(temp,"%d",pair[child]);
-		  		arguments[7]= temp;
 
+		  		char temp2[10];
+		  		memset(temp2,0,10);
+		  		sprintf(temp,"%d",pair[child]);
+		  		sprintf(temp2,"%d",logFD);
+		  		arguments[7]= temp;
+				arguments[8]= temp2;
 		  		close(pair[parent]);
 			
 		  		execvp(arguments[0],arguments);
@@ -849,46 +954,43 @@ int windowCheck(char*user){
 
 }
 void parseMSG(char*buf,char*msgTo,char*msgFrom,char*msg){
-	  int index = 4;
-	  int i =0;
 
+		char *ptr;
+		char temp [MAXLINE];
 	  memset(msgTo,0,20);
 	  memset(msgFrom,0,20);
 	  memset(msg,0,1024);
+	  memset(temp,0,1024);
 	  //parse msgTo 
-	  while(buf[index]!=' '){
-	  	msgTo[i]=buf[index];
-	  	i++;
-	  	index ++;
-	  }
-	  index ++;
-	  i =0;
-	  //parse msgFrom
-	  while(buf[index]!=' '){
-	  	msgFrom[i]=buf[index];
-	  	i++;
-	  	index ++;
-	  }
-	  index ++;
-	  i =0;
-	  while(buf[index]!='\r'){
-	  	msg[i]=buf[index];
-	  	i++;
-	  	index ++;
-	  }
+	  ptr = strtok(buf," ");
+
+	  ptr = strtok(NULL," ");
+	  strcpy(msgTo,ptr);
+
+	  ptr = strtok(NULL," ");
+	  strcpy(msgFrom,ptr);
+
+	  ptr = strtok(NULL," ");
+	  strcpy(temp,ptr);
+
+	  ptr = strtok(temp," \r\n\r\n");
+	  strcpy(msg,ptr);
+
 
 }
 void Select(int n,fd_set *set){
 	if(select(n,set,NULL,NULL,NULL)<0)
-		fprintf(stderr,"Error on select\n");
+		sfwrite(&mut,stderr,"Error on select\n");
 }
 
 void HELP(){
 	color("yellow",1);
-	fprintf(stdout,"Client Usage:\n" );
+	sfwrite(&mut,stdout,"Client Usage:\n" );
 	color("white",1);
-	fprintf(stdout,
-	"./client [-hcv] <NAME> <SERVER_IP> <SERVER_PORT>							\n \
+
+	sfwrite(&mut,stdout,
+	"./client [-hcv] [-a FILE] <NAME> <SERVER_IP> <SERVER_PORT>		\n \
+	-a FILE Path to the audit log file.							\n \
 	-h		Displays this help menu, and returns EXIT_SUCCESS.	\n \
 	-c		Requests to server to create a new user				\n \
 	-v		Verbose print all incoming and outgoing protocol verbs&content.			\n \
@@ -899,13 +1001,14 @@ void HELP(){
 
 void helpCommand(){
 	color("yellow",1);
-	fprintf(stdout,"Client Commands:\n" );
+	sfwrite(&mut,stdout,"Client Commands:\n" );
 	color("white",1);
-	fprintf(stdout,
+	sfwrite(&mut,stdout,
 	"/time		Show how long have been connected to the server.\n \
 	/logout		Log out from the server.				\n \
 	/help		List all the commands accepted by the program.			\n \
 	/listu		List all the user currently on the server.	\n \
+	/audit		List Log History					\n\
 	/chat		Starting a chat with someone.	\n ");
 }
 
@@ -940,7 +1043,7 @@ void color(char* color,int fd){
 
 void errorPrint(){
 	color("red",2);
-	fprintf(stderr, "error: " );
+	sfwrite(&mut,stderr, "error: " );
 	color("white",2);
 
 }
@@ -970,12 +1073,12 @@ int writeV(int fd, char *s, int byte){
 	int result = write(fd,s,byte);
 	if(verbose){
 		color("green",1);
-		printf("%s\n",s);
+		sfwrite(&mut,stdout,"%s\n",s);
 		color("white",1);
 	}
 	if(result == -1){
 		color("red",1);
-		fprintf(stderr,"Error on writing to FD: %d\n Error: %s\n",fd,strerror(errno));
+		sfwrite(&mut,stderr,"Error on writing to FD: %d\n Error: %s\n",fd,strerror(errno));
 		color("white",1);
 	}
 	return result;
@@ -995,8 +1098,33 @@ void shutDown(){
 		
 	}
 
+
+
+	Close(logFD);
 	Close(clientfd);
 	exit(EXIT_SUCCESS);
 
 
+}
+
+void createLog(){
+
+	logFD = open("./audit.log",O_RDWR|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
+	logS = fdopen(logFD,"a+");
+}
+void addLog(char* msg){
+
+	
+	time_t rawtime;
+	struct tm*info;
+	char buffer[1024];
+
+	time(&rawtime);
+
+	info = localtime(&rawtime);
+	strftime(buffer,1024,"%x - %I:%M%p", info);
+	strcat(buffer,msg);
+ 
+	sfwrite(&mut,logS,"%s",buffer);
+	fflush(logS);
 }
