@@ -63,14 +63,15 @@ char port[20];
 User *userHead = NULL;
 accountList *accHead = NULL;
 pthread_mutex_t mut;
+pthread_mutex_t userLock;
+pthread_mutex_t acctLock;
 
 int main (int argc, char ** argv){
 
-
 	pthread_mutex_init(&mut,NULL);
-	char * ccc = "%s,%d hahahah\n";
-	sfwrite(&mut,stdout,ccc,"11111",2);
-	printf("adsfkjasd\n");
+	pthread_mutex_init(&userLock,NULL);
+	pthread_mutex_init(&userLock,NULL);
+
 	signal(SIGINT,sigInt_handler);
 
 	/*check for arguments*/
@@ -134,20 +135,20 @@ int main (int argc, char ** argv){
 
 	if(argc < 3){
 		color("red",1);
-		fprintf(stderr,"Missing argument\n");
+		sfwrite(&mut,stderr,"Missing argument\n");
 		color("white",1);
 		exit(0);
 		}
 
 	if((listenfd = open_listenfd(port)) < 0){
 		color("red",1);
-		fprintf(stderr,"Open listen fd failed\n");
+		sfwrite(&mut,stderr,"Open listen fd failed\n");
 		color("red",1);
 		exit(0);
 	}
 
 	color("green",1);
-	fprintf(stdout,"Currently listening on port %s\n",port);
+	sfwrite(&mut,stdout,"Currently listening on port %s\n",port);
 	color("white",1);
 
 	/*for multiIndexing*/
@@ -178,13 +179,16 @@ void addAcct(char *name, char *pwd){
 
 	if(!RAND_bytes(acct->salt,5)){
 		color("red",2);
-		fprintf(stderr,"Error on generating random bytes\n");
+		sfwrite(&mut,stderr,"Error on generating random bytes\n");
 		color("white",2);
 	}
 
 	getHash((void*)acct,pwd);
 
 	acct->next = NULL;
+
+/*lock acctList to add new acct*/
+	pthread_mutex_lock(&acctLock);
 
 	accountList *temp = accHead;
 
@@ -216,7 +220,8 @@ void addAcct(char *name, char *pwd){
 		writeV(acctFd,"\n\n\n\n\n",5);
 	}
 
-	
+	pthread_mutex_unlock(&acctLock);
+	/*unlock acctlist*/
 }
 
 void sigInt_handler(int sigID){
@@ -258,7 +263,7 @@ int Open(const char* pathname, int flags, mode_t mode){
 	int result;
 	result = open(pathname,flags,mode);
 	if(result < 0)
-		fprintf(stderr,"Open file: %s with error: %s\n",pathname,strerror(errno));
+		sfwrite(&mut,stderr,"Open file: %s with error: %s\n",pathname,strerror(errno));
 	return result;
 }
 
@@ -270,7 +275,7 @@ void getHash(void *acct, char *pwd){
 
 	if(!SHA256_Init(&temp)){
 		color("red",2);
-		fprintf(stderr,"Error on hashing password: INIT\n");
+		sfwrite(&mut,stderr,"Error on hashing password: INIT\n");
 		color("white",2);
 	}
 	if(!SHA256_Update(&temp,pwd,strlen(pwd))){
@@ -281,12 +286,12 @@ void getHash(void *acct, char *pwd){
 	
 	if(!SHA256_Update(&temp,acc->salt,5)){
 		color("red",2);
-		fprintf(stderr,"Error on hashing password: Update with Salt\n");
+		sfwrite(&mut,stderr,"Error on hashing password: Update with Salt\n");
 		color("white",2);
 	}
 	if(!SHA256_Final(acc->pwd,&temp)){
 		color("red",2);
-		fprintf(stderr,"Error on hashing password: Final\n");
+		sfwrite(&mut,stderr,"Error on hashing password: Final\n");
 		color("white",2);
 	}
 
@@ -311,23 +316,23 @@ int compareHash(char *name, char *pwd){
 
 	if(!SHA256_Init(&temp)){
 		color("red",2);
-		fprintf(stderr,"Error on hashing password: INIT\n");
+		sfwrite(&mut,stderr,"Error on hashing password: INIT\n");
 		color("white",2);
 	}
 	if(!SHA256_Update(&temp,pwd,strlen(pwd))){
 		color("red",2);
-		fprintf(stderr,"Error on hashing password: Update\n");
+		sfwrite(&mut,stderr,"Error on hashing password: Update\n");
 		color("white",2);
 	}
 	
 	if(!SHA256_Update(&temp,acc->salt,5)){
 		color("red",2);
-		fprintf(stderr,"Error on hashing password: Update with Salt\n");
+		sfwrite(&mut,stderr,"Error on hashing password: Update with Salt\n");
 		color("white",2);
 	}
 	if(!SHA256_Final(compare,&temp)){
 		color("red",2);
-		fprintf(stderr,"Error on hashing password: Final\n");
+		sfwrite(&mut,stderr,"Error on hashing password: Final\n");
 		color("white",2);
 	}
 
@@ -366,7 +371,7 @@ void *loginThread(void *Cpair){
 		 if(strcmp(token,"\r\n\r\n")){
 			 /*login fail*/
 			 color("red",1);
-			 fprintf(stderr,"client did not send rnrn\n");
+			 sfwrite(&mut,stderr,"client did not send rnrn\n");
 			 color("white",1);
 			 log=0;
 		 }
@@ -382,7 +387,7 @@ void *loginThread(void *Cpair){
 		 if(strcmp(token,"\r\n\r\n")){
 			 /*login fail*/
 			 color("red",1);
-			 fprintf(stderr,"client did not send rnrn\n");
+			 sfwrite(&mut,stderr,"client did not send rnrn\n");
 			 color("white",1);
 			 log=0;
 		 }
@@ -392,7 +397,7 @@ void *loginThread(void *Cpair){
 
 	 }else{
 		 color("red",1);
-		 fprintf(stderr,"client did not send IAM\n");
+		 sfwrite(&mut,stderr,"client did not send IAM\n");
 		 color("white",1);
 		 log=0;
 		 /*login fail*/
@@ -402,19 +407,19 @@ void *loginThread(void *Cpair){
    if(log){
 
 	   User* temp = (User*)addUser(name1,pair);
-	   printf("login sucess! %s\n",name1);
+	   sfwrite(&mut,stdout,"login sucess! %s\n",name1);
 	  
 	   /*create communication thread*/
 	   pthread_t tid;
 	   if(pthread_create(&tid,NULL,talkThread,temp)){
    		color("red",1);
-   		fprintf(stderr,"Error on create thread\n");
+   		sfwrite(&mut,stderr,"Error on create thread\n");
    		color("white",1);
    		}
 
    }else{
 	   color("red",1);
-   		fprintf(stderr,"login fail!\n");
+   		sfwrite(&mut,stderr,"login fail!\n");
 		color("white",1);
 	}
 	return NULL;
@@ -428,13 +433,13 @@ int existUser(void *Cpair, char *name){
 		 if((loginS = checkLogin(name,1))<0){
 		 	if(loginS == -1){
 			 color("red",1);
-			 fprintf(stderr,"same username\n");
+			 sfwrite(&mut,stderr,"same username\n");
 			 color("white",1);
 			 handleError(nameTaken,pair->fd);
 			 return 0;
 			}else if(loginS == -1){
 				color("red",1);
-				 fprintf(stderr,"same username\n");
+				 sfwrite(&mut,stderr,"same username\n");
 				 color("white",1);
 				 handleError(notAvailable,pair->fd);
 				 return 0;
@@ -467,7 +472,7 @@ int existUser(void *Cpair, char *name){
 		   			return 0;
 		   		}
 		   }else{
-		   		fprintf(stderr,"Verb PASS is not received\n");
+		   		sfwrite(&mut,stderr,"Verb PASS is not received\n");
 		   		return 0;
 		   }
 		  
@@ -483,7 +488,7 @@ int newUser(void *Cpair, char *name){
 	char buf[MAXLINE];
 	if(checkLogin(name,0)==0){
 			 color("red",1);
-			 fprintf(stderr,"same username\n");
+			 sfwrite(&mut,stderr,"same username\n");
 			 color("white",1);
 			 handleError(nameTaken,pair->fd);
 			 return 0;
@@ -512,7 +517,6 @@ int newUser(void *Cpair, char *name){
 		strcat(buf,welcomeMessage);
 		strcat(buf," \r\n\r\n");
 		writeV(pair->fd,buf,MAXLINE);
-		printf("%s",buf);
 		return 1;
 
 	}else{
@@ -542,7 +546,7 @@ void* talkThread(void* vargp){
 		memset(buf,0,MAXLINE);
 		Read(user->clientSock,buf,MAXLINE);
 		if(!strcmp(buf,"TIME \r\n\r\n")){
-			printf("process command TIME\n");
+			
 			int result = getTime(user->loginTime);
 			memset(buf,0,MAXLINE);
 			int temp = result, len = 2;
@@ -560,7 +564,7 @@ void* talkThread(void* vargp){
 			writeV(user->clientSock,buf,MAXLINE);
 		}
 		else if(!strcmp(buf,"LISTU \r\n\r\n")){
-			printf("process command LISTU\n");
+			
 			memset(buf,0,MAXLINE);
 			strcpy(buf,"UTSIL ");
 			User *temp = userHead;
@@ -635,12 +639,7 @@ void* talkThread(void* vargp){
 
 void* addUser(char *name, void *pair){
 
-	/*find last user*/
-	User *temp = userHead;
-	if(temp != NULL){
-		while(temp->next!=NULL)
-			temp = temp->next;
-	}
+	
 	communicatePair p = *((communicatePair*)pair);
 	User *newUser = malloc(sizeof(User));
 	strcpy(newUser->name,name);
@@ -648,11 +647,22 @@ void* addUser(char *name, void *pair){
 	newUser->addr = p.addr;
 	newUser->next = NULL;
 	newUser->loginTime = time(0);
-	//printf("add user %s\n",newUser->name);
+	
+	/*lock user list*/
+	pthread_mutex_lock(&userLock);
+	/*find last user*/
+	User *temp = userHead;
+	if(temp != NULL){
+		while(temp->next!=NULL)
+			temp = temp->next;
+	}
+
 	if(userHead==NULL)
 		userHead = newUser;
 	else
 		temp->next = newUser;
+	/*unlock user list*/
+	pthread_mutex_unlock(&userLock);
 
 	return (void*)newUser;
 }
@@ -664,6 +674,8 @@ void removeUser(int fd){
 	char name[1000];
 	temp = userHead;
 	prev = temp;
+
+	pthread_mutex_lock(&userLock);
 	/*find user to remove*/
 	while(temp->clientSock!=fd){
 		prev = temp;
@@ -684,6 +696,7 @@ void removeUser(int fd){
 	Close(temp->clientSock);
 	prev->next = temp->next;
 	free(temp);
+	
 
 	/*send uoff to all other users*/
 	strcpy(buf,"UOFF ");
@@ -694,7 +707,9 @@ void removeUser(int fd){
 		writeV(temp->clientSock,buf,MAXLINE);
 		temp = temp->next;
 	}
-	
+
+	pthread_mutex_unlock(&userLock);
+
 }
 
 void handleError(int error_code,int fd){
@@ -762,7 +777,7 @@ void stdinCommand(){
 	char buf[MAXLINE];
 	if(scanf("%s",buf)<0){
 		color("red",1);
-		fprintf(stderr,"Error reading standard input\n");
+		sfwrite(&mut,stderr,"Error reading standard input\n");
 		color("white",1);
 	}
 
@@ -785,20 +800,24 @@ void stdinCommand(){
 
 void users(){
 	User *temp = userHead;
+	pthread_mutex_lock(&userLock);
 	while(temp!=NULL){
-		printf("User Name: %s FD: %d\n",temp->name,temp->clientSock);
+		sfwrite(&mut,stdout,"User Name: %s FD: %d\n",temp->name,temp->clientSock);
 		temp = temp->next;
 	}
+	pthread_mutex_unlock(&userLock);
 }
 
 void accts(){
 	accountList *temp = accHead;
 	color("green",1);
+	pthread_mutex_lock(&acctLock);
 	while(temp!=NULL){
-		printf("User: %s\nPassword: %s\nSalt: %s\n",
+		sfwrite(&mut,stdout,"User: %s\nPassword: %s\nSalt: %s\n",
 			temp->name,temp->pwd,temp->salt);
 		temp = temp->next;
 	}
+	pthread_mutex_unlock(&acctLock);
 	color("white",1);
 }
 
@@ -810,6 +829,8 @@ void shutDown(){
 void cleanUp(){
 
 	User *temp = userHead;
+
+	pthread_mutex_lock(&userLock);
 	while(temp!=NULL){
 		User *temp2 = temp;
 		writeV(temp2->clientSock,"BYE \r\n\r\n",8);
@@ -817,15 +838,18 @@ void cleanUp(){
 		temp = temp->next;
 		free(temp2);
 	}
+	pthread_mutex_unlock(&userLock);
 
 	accountList *acc = accHead;
 	accountList *accP = acc;
 
+	pthread_mutex_lock(&acctLock);
 	while(acc!=NULL){
 		accP = acc;
 		acc = acc->next;
 		free(accP);
 	}
+	pthread_mutex_unlock(&acctLock);
 
 	Close(listenfd);
 }
@@ -845,19 +869,12 @@ void clientCommand(int listenfd){
 	communicatePair pair;
 	pair.fd = connfd;
 	pair.addr = ((struct sockaddr_in*)&clientaddr)->sin_addr;
-	//printf("fd: %d addr: %d\n",pair.fd,pair.addr.s_addr);
+
 	if(pthread_create(&tid,NULL,loginThread,&pair)){
 		color("red",1);
-		fprintf(stderr,"Error on create thread\n");
+		sfwrite(&mut,stderr,"Error on create thread\n");
 		color("white",1);
 	}
-	/*wait for login thread to determine
-	Pthread_join(tid,NULL);
-
-	fprintf(stdout,"connected address is : %d \n",
-		((struct sockaddr_in*)&clientaddr)->sin_addr.s_addr);
-		*/
-
 
 }
 
@@ -872,7 +889,7 @@ int getTime(time_t current_time){
 void Select(int n,fd_set *set){
 	if(select(n,set,NULL,NULL,NULL)<0){
 		color("red",1);
-		fprintf(stderr,"Error on select\n");
+		sfwrite(&mut,stderr,"Error on select\n");
 		color("white",1);
 	}
 }
@@ -881,7 +898,7 @@ int Accept(int socket, struct sockaddr *addr, socklen_t *socklen){
 	int result = accept(socket, addr, socklen);
 	if(result == -1){
 		color("red",1);
-		fprintf(stderr,"Error in accept connection: %s\n",strerror(errno));
+		sfwrite(&mut,stderr,"Error in accept connection: %s\n",strerror(errno));
 		color("white",1);
 	}
 	return result;
@@ -936,24 +953,24 @@ int Getaddrinfo(const char* host,
 	resultt = getaddrinfo(host,service,hints, result);
 	if(resultt != 0){
 		color("red",1);
-		fprintf(stderr,"Getaddrinfo with error: %s\n",gai_strerror(resultt));
+		sfwrite(&mut,stderr,"Getaddrinfo with error: %s\n",gai_strerror(resultt));
 		color("white",1);}
 	return resultt;
 
 }
 
 void HELP(){
-	fprintf(stdout,"Server Usage:\n \
-	./server [-hv] SERVER_PORT MOTD\n \
-	-h				Displays this help menu, and returns EXIT_SUCCESS.\n \
-	-t THREAD_COUNT The number of threads used for the login queue. \n \
-	-v				Verbose print all incoming and outgoing protocol verbs&content.\n \
-	SERVER_PORT		Port number of server\n \
-	MOTD			Message of today\n \
-	/users			Print a list of user currently logged in\n \
-	/accts 			Print a list of accounts \n \
-	/help			Print this list of commands	and exit\n \
-	/shutDown		Close all socket, files and free heap memory then terminate\n");
+	sfwrite(&mut,stdout,"Server Usage:\n \
+./server [-hv] SERVER_PORT MOTD\n \
+-h				Displays this help menu, and returns EXIT_SUCCESS.\n \
+-t THREAD_COUNT The number of threads used for the login queue. \n \
+-v				Verbose print all incoming and outgoing protocol verbs&content.\n \
+SERVER_PORT		Port number of server\n \
+MOTD			Message of today\n \
+/users			Print a list of user currently logged in\n \
+/accts 			Print a list of accounts \n \
+/help			Print this list of commands	and exit\n \
+/shutDown		Close all socket, files and free heap memory then terminate\n");
 	shutDown();
 	exit(0);
 }
@@ -962,7 +979,7 @@ ssize_t Read(int fd, void *buf,size_t count){
 	ssize_t result = read(fd,buf,count);
 	if(result == -1){
 		color("red",1);
-		fprintf(stderr,"Error on read: %s\n",strerror(errno));
+		sfwrite(&mut,stderr,"Error on read: %s\n",strerror(errno));
 		color("white",1);
 	}
 	return result;
@@ -972,7 +989,7 @@ int Pthread_join(pthread_t tid, void **thread_return){
 	int result = pthread_join(tid,thread_return);
 	if(result!=0){
 		color("red",1);
-		fprintf(stderr,"Error join thread\n");
+		sfwrite(&mut,stderr,"Error join thread\n");
 		color("white",1);
 	}
 
@@ -983,7 +1000,7 @@ int Pthread_detach(pthread_t tid){
 	int result = pthread_detach(tid);
 	if(result!=0){
 		color("red",1);
-		fprintf(stderr,"Error detach thread\n");
+		sfwrite(&mut,stderr,"Error detach thread\n");
 		color("white",1);
 	}
 	return result;
@@ -1019,18 +1036,20 @@ void color(char* color,int fd){
 }
 
 int writeV(int fd, char *s, int byte){
+
 	int result = write(fd,s,byte);
 	if(verbose){
 		color("green",1);
-		printf("%s\n",s);
+		sfwrite(&mut,stderr,"%s\n",s);
 		color("white",1);
 	}
 	if(result == -1){
 		color("red",1);
-		fprintf(stderr,"Error on writing to FD: %d\n Error: %s\n",fd,strerror(errno));
+		sfwrite(&mut,stderr,"Error on writing to FD: %d\n Error: %s\n",fd,strerror(errno));
 		color("white",1);
 	}
 	return result;
+
 }
 
 int Close(int fd){
