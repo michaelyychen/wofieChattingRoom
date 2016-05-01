@@ -69,6 +69,7 @@ int Pthread_detach(pthread_t tid);
 int writeV(int fd, char *s,int byte);
 /*thread functions*/
 void *loginThread(void *vargp);
+void *loginThreadC(void *vargp);
 
 void* addUser(char *name, void *pair);
 
@@ -109,3 +110,11 @@ void cleanUp();
 
 void uoffHandler(char*buffer);
 void errorHandler(char*buffer);
+
+/*for sem*/
+void loginQueueInit(int count);
+void loginQueueClean();
+void loginQueueInsert(int clientfd);
+int loginQueueRemove();
+void P(sem_t *s);
+void V(sem_t *s);

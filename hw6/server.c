@@ -15,6 +15,7 @@
 #include <pthread.h>
 #include <openssl/sha.h>
 #include <openssl/rand.h>
+#include <semaphore.h>
 #include "sfwrite.h"
 
 #include "myHeader.h"
@@ -53,15 +54,31 @@ struct communicatePair{
 
 typedef struct communicatePair communicatePair;
 
+struct loginQueue{
+	int *buf;
+	int count;
+	int front;
+	int rear;
+	sem_t mut;
+	sem_t space;
+	sem_t items;
+};
+
+typedef struct loginQueue loginQueue;
+
 /*global variables*/
 int listenfd;
 int acctFd = 0;
 int verbose = 0;
 int userCount = 0;
+int loginThreadCount = 0;
 char *welcomeMessage;
 char port[20];
 User *userHead = NULL;
 accountList *accHead = NULL;
+loginQueue loginQ;
+
+
 pthread_mutex_t mut;
 pthread_mutex_t userLock;
 pthread_mutex_t acctLock;
@@ -87,7 +104,7 @@ int main (int argc, char ** argv){
 		int i = 3;
 		while(i<argc){
 			
-			acctFd = Open(argv[i],O_RDWR|O_APPEND,S_IWUSR|S_IRUSR|S_IXUSR);
+			acctFd = open(argv[i],O_RDWR|O_APPEND,S_IWUSR|S_IRUSR|S_IXUSR);
 			if(acctFd>0){
 				/*initilize account link list*/
 				
@@ -122,13 +139,30 @@ int main (int argc, char ** argv){
 
 	/*check for optional argument*/
 	int opt = 0;
-	while((opt = getopt(argc,argv,"hv")) != -1){
+	while((opt = getopt(argc,argv,"hvt:")) != -1){
+		
 		if(opt == 'h'){
 			HELP();
 			exit(EXIT_SUCCESS);
 		}
 		else if(opt == 'v'){
 			verbose = 1;
+		}else if(opt == 't'){
+
+			loginThreadCount = stringToInt(optarg);
+			loginQueueInit(loginThreadCount);
+
+			/*spawn loginThreadCount number of login thread*/
+			for(int i=0;i<loginThreadCount;i++){
+				pthread_t tid;
+				if(pthread_create(&tid,NULL,loginThreadC,NULL)){
+				color("red",1);
+				sfwrite(&mut,stderr,"Error on create thread\n");
+				color("white",1);
+				}
+			}
+
+			sfwrite(&mut,stdout,"Number of login threads to spawn: %d\n",loginThreadCount);
 		}
 
 	}
@@ -171,7 +205,70 @@ int main (int argc, char ** argv){
 	exit(0);
 }
 
+int stringToInt(char* str){
+	int result=0;
+	int i;
+	int stringLen = strlen(str);
 
+	for(i=0; i<stringLen; i++){
+
+	result = result * 10 + ( str[i] - '0' );
+
+	}
+	return result;
+}
+
+void loginQueueInit(int count){
+
+	loginQ.buf = calloc(count,sizeof(int));
+	loginQ.count = count;
+	loginQ.front = 0;
+	loginQ.rear = 0;
+	sem_init(&loginQ.mut,0,1);
+	sem_init(&loginQ.space,0,count);
+	sem_init(&loginQ.items,0,0);
+
+}
+
+void loginQueueClean(){
+	free(loginQ.buf);
+}
+
+void loginQueueInsert(int clientfd){
+
+	P(&loginQ.space);
+	P(&loginQ.mut);
+	loginQ.buf[(++loginQ.rear)%(loginQ.count)] = clientfd;
+	V(&loginQ.mut);
+	V(&loginQ.items);
+
+}
+int loginQueueRemove(){
+
+	int clientfd;
+	P(&loginQ.items);
+	P(&loginQ.mut);
+	clientfd = loginQ.buf[(++loginQ.front)%(loginQ.count)];
+	V(&loginQ.mut);
+	V(&loginQ.space);
+	return clientfd;
+
+}
+
+void P(sem_t *s){
+
+	if(!sem_wait(s)){
+		sfwrite(&mut,stderr,"Error using sem_post\n");
+	}
+
+}
+void V(sem_t *s){
+
+	if(!sem_post(s)){
+		sfwrite(&mut,stderr,"Error using sem_post\n");
+	}
+
+}
 void addAcct(char *name, char *pwd){
 
 	accountList *acct = malloc(sizeof(accountList));
@@ -350,6 +447,7 @@ void *loginThread(void *Cpair){
 	communicatePair *pair = Cpair;
 	char buf[MAXLINE];
 	Read(pair->fd,buf,MAXLINE);
+
 	/*compare protocol*/
 	if(!strncmp(buf,"WOLFIE \r\n\r\n",11)){
 		writeV(pair->fd,"EIFLOW \r\n\r\n",11);
@@ -425,6 +523,96 @@ void *loginThread(void *Cpair){
 	return NULL;
 }
 
+
+void *loginThreadC(void * clientfd){
+	
+	while(1){
+
+		/*check if clientfd availble*/
+		communicatePair Cpair;
+		Cpair.fd = loginQueueRemove();
+		communicatePair *pair = &Cpair;
+
+		/*read from client*/
+		int log = 1;
+		char buf[MAXLINE];
+		Read(pair->fd,buf,MAXLINE);
+		/*compare protocol*/
+		if(!strncmp(buf,"WOLFIE \r\n\r\n",11)){
+			writeV(pair->fd,"EIFLOW \r\n\r\n",11);
+		}else{
+			/*login fail*/
+			log =0;
+		}
+
+		Read(pair->fd,buf,MAXLINE);
+		char name1[1000];
+	    char *token;
+	    token = strtok(buf, " ");
+		if(!strcmp(token,"IAM")){
+			/*existing user login process*/
+			
+		     token = strtok(NULL, " ");
+			 strcpy(name1,token);
+			 token = strtok(NULL, " ");
+			 if(strcmp(token,"\r\n\r\n")){
+				 /*login fail*/
+				 color("red",1);
+				 sfwrite(&mut,stderr,"client did not send rnrn\n");
+				 color("white",1);
+				 log=0;
+			 }
+
+			 log = existUser((void*)pair,name1);
+			 
+
+		 }else if(!strcmp(token,"IAMNEW")){
+		 	/*new user login process*/
+		 	 token = strtok(NULL, " ");
+			 strcpy(name1,token);
+			 token = strtok(NULL, " ");
+			 if(strcmp(token,"\r\n\r\n")){
+				 /*login fail*/
+				 color("red",1);
+				 sfwrite(&mut,stderr,"client did not send rnrn\n");
+				 color("white",1);
+				 log=0;
+			 }
+
+		 	 log = newUser((void*)pair, name1);
+		 	
+
+		 }else{
+			 color("red",1);
+			 sfwrite(&mut,stderr,"client did not send IAM\n");
+			 color("white",1);
+			 log=0;
+			 /*login fail*/
+		 }
+		 
+
+	   if(log){
+
+		   User* temp = (User*)addUser(name1,pair);
+		   sfwrite(&mut,stdout,"login sucess! %s\n",name1);
+		  
+		   /*create communication thread*/
+		   pthread_t tid;
+		   if(pthread_create(&tid,NULL,talkThread,temp)){
+	   		color("red",1);
+	   		sfwrite(&mut,stderr,"Error on create thread\n");
+	   		color("white",1);
+	   		}
+
+	   }else{
+		   color("red",1);
+	   		sfwrite(&mut,stderr,"login fail!\n");
+			color("white",1);
+		}
+	}
+	return NULL;
+}
+
 int existUser(void *Cpair, char *name){
 
 	communicatePair *pair = Cpair;
@@ -480,6 +668,9 @@ int existUser(void *Cpair, char *name){
 		   return 1;
 
 }
+
+
+
 
 int newUser(void *Cpair, char *name){
 
@@ -742,6 +933,8 @@ int checkLogin(char *name, int exist){
 	/*if user already login in, return 0*/
 	int currentlyIn = 1, hasAccount = 0;
 	User *temp = userHead;
+
+	pthread_mutex_lock(&userLock);
 	while(temp!=NULL){
 		if(!strcmp(temp->name,name))
 			currentlyIn = 0;
@@ -756,6 +949,8 @@ int checkLogin(char *name, int exist){
 		}
 		acc = acc->next;
 	}
+
+	pthread_mutex_unlock(&userLock);
 
 	if(exist){
 		if(hasAccount){
@@ -822,6 +1017,8 @@ void accts(){
 }
 
 void shutDown(){
+	if(loginThreadCount!=0)
+		loginQueueClean();
 	cleanUp();
 	exit(0);
 }
@@ -870,10 +1067,18 @@ void clientCommand(int listenfd){
 	pair.fd = connfd;
 	pair.addr = ((struct sockaddr_in*)&clientaddr)->sin_addr;
 
-	if(pthread_create(&tid,NULL,loginThread,&pair)){
-		color("red",1);
-		sfwrite(&mut,stderr,"Error on create thread\n");
-		color("white",1);
+
+	if(loginThreadCount==0){
+		/*just one thread of login*/
+		if(pthread_create(&tid,NULL,loginThread,&pair)){
+			color("red",1);
+			sfwrite(&mut,stderr,"Error on create thread\n");
+			color("white",1);
+		}
+	}else{
+		/*spawn n login therad according to loginThreadCount*/
+		loginQueueInsert(connfd);
+
 	}
 
 }

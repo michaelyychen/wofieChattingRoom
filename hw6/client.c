@@ -18,6 +18,7 @@
 #include <termios.h>
 #include <pthread.h>
 #include <time.h>
+#include <semaphore.h>
 #include "myHeader.h"
 #include "sfwrite.h"
 #define MAXLINE 1024
