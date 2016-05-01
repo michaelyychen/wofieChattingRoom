@@ -818,14 +818,20 @@ void startChatHandler(char*buf){
 
 	char *token = strtok(buf," ");
 	token = strtok(NULL," ");
-	strcpy(output[1],token);
-	token = strtok(NULL," ");
-	strcpy(output[2],token);
-
-	if(output[1]==NULL||output[2]==NULL){
+	if(token==NULL){
+		errorPrint();
+		sfwrite(&mut,stderr,"Missing arguments\n");
 		return;
 	}
-	
+	strcpy(output[1],token);
+	token = strtok(NULL," ");
+	if(token==NULL){
+		errorPrint();
+		sfwrite(&mut,stderr,"Missing arguments\n");
+		return;
+	}
+	strcpy(output[2],token);
+
 
 	//construct output protocol
 	strcat(buffer,"MSG");
