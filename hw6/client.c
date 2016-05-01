@@ -7,6 +7,7 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <sys/file.h>
 #include <errno.h>
 #include <signal.h>
 #include <sys/types.h>
@@ -85,7 +86,7 @@ void sigChild_handler(int sigID){
 
 	if (fcntl(childHead->fd, F_GETFL) < 0 && errno == EBADF) {
     // file descriptor is invalid or closed
-		printf("i got it\n");
+		//printf("i got it\n");
 	}
 
 }
@@ -98,7 +99,7 @@ int main (int argc, char ** argv) {
 	
 	if(argc<4){
 	errorPrint();
-	fprintf(stderr,"Missing arguments \n");
+	sfwrite(&mut,stderr,"Missing arguments \n");
 	HELP();
 	exit(0);
 	}
@@ -111,7 +112,7 @@ int main (int argc, char ** argv) {
 
 	int opt = 0;
 	
-	while((opt = getopt(argc,argv,"hcva")) != -1){
+	while((opt = getopt(argc,argv,"hcva:")) != -1){
 		if(opt == 'h'){
 			HELP();
 			exit(EXIT_SUCCESS);
@@ -122,25 +123,18 @@ int main (int argc, char ** argv) {
 			verbose=1;
 		}else if(opt == 'a'){
 			audit=1;
+			strcpy(path,optarg);
 		}
 		
 	}
 
-	if(audit>0){
-		int index=0;
-		while(index<argc){
-			if(!strcmp(argv[index],"-a")){
-				strcpy(path,argv[index+1]);
-				break;
-			}
-			index++;
-		}
-	}
-	printf("path %s\n",path );
+
+	
+
 
 	if((clientfd=open_clientfd(host,port)) < 0){
 		errorPrint();
-		fprintf(stderr,"Open client fd failed\n");
+		sfwrite(&mut,stderr,"Open client fd failed\n");
 		exit(0);
 
 	}
@@ -150,7 +144,7 @@ int main (int argc, char ** argv) {
 	
 	if(login(host,port)<0){
 		errorPrint();
-		fprintf(stderr, "Login response failed\n" );
+		sfwrite(&mut,stderr, "Login response failed\n" );
 		Close(clientfd);
 		exit(0);
 	}
@@ -264,7 +258,7 @@ int login(char*host,char*port){
 
 					color("green",1);
 
-					printf("%s\n",arguments3);
+					sfwrite(&mut,stdout,"%s\n",arguments3);
 
 					color("white",1);
 					ptr = strtok(arguments3,"\r\n\r\n");	
@@ -280,7 +274,7 @@ int login(char*host,char*port){
 					
 					ptr = strtok(arguments1,"\r\n\r\n");	
 					errorPrint();
-					printf("%s\n",ptr );
+					sfwrite(&mut,stderr,"%s\n",ptr );
 					sprintf(logBuffer,", %s, LOGIN, %s:%s, fail, %s\n",username,host,port,ptr);		
 					addLog(logBuffer);
 					return -1;
@@ -290,7 +284,7 @@ int login(char*host,char*port){
 			}else{
 					ptr = strtok(arguments,"\r\n\r\n");	
 					errorPrint();
-					printf("%s\n",ptr );
+					sfwrite(&mut,stderr,"%s\n",ptr );
 					sprintf(logBuffer,", %s, LOGIN, %s:%s, fail, %s\n",username,host,port,ptr);			
 					addLog(logBuffer);
 				return -1;
@@ -342,7 +336,8 @@ int login(char*host,char*port){
 					if(!strncmp(arguments,nameBuffer,3)){
 					
 					color("green",1);
-					printf("%s\n",arguments2);
+					sfwrite(&mut,stdout,"%s\n",arguments2 );
+					
 					color("white",1);	
 					ptr = strtok(arguments2,"\r\n\r\n");	
 					char logBuffer[1024];
@@ -357,7 +352,7 @@ int login(char*host,char*port){
 				}else{
 					ptr = strtok(arguments,"\r\n\r\n");	
 					errorPrint();
-					printf("%s\n",ptr );
+					sfwrite(&mut,stderr,"%s\n",ptr );
 					sprintf(logBuffer,", %s, LOGIN, %s:%s, fail, %s\n",username,host,port,ptr);			
 					addLog(logBuffer);
 					return -1;
@@ -365,7 +360,7 @@ int login(char*host,char*port){
 			}else{
 					ptr = strtok(buffer,"\r\n\r\n");	
 					errorPrint();
-					printf("%s\n",ptr );
+					sfwrite(&mut,stderr,"%s\n",ptr );;
 					sprintf(logBuffer,", %s, LOGIN, %s:%s, fail, %s\n",username,host,port,ptr);			
 					addLog(logBuffer);
 				return -1;
@@ -412,7 +407,7 @@ int promtPwd(char *pwd){
         return -1;
     }
 
-    printf("password: ");
+    sfwrite(&mut,stdout,"password: ");
    
     fgets(pwd,64,stdin);
     pwd[strlen(pwd) - 1] = 0;
@@ -431,7 +426,7 @@ void parseArg(int fd,char arguments[10][1024]){
 
 	char buf[MAXLINE],*temp;
 	read(fd,buf,MAXLINE);
-	printf("inside %s\n",buf );
+	
 
 	//printf("%s\n",buf);
 	char con[4] = "\r\n\r\n";
@@ -522,7 +517,8 @@ void auditHandler(){
 	int c;
 
    	fseek(logS,0,SEEK_SET);   
-	  
+	flock(logFD,LOCK_EX);
+
 	while(1){
       c = fgetc(logS);
       if(feof(logS)){ 
@@ -530,7 +526,7 @@ void auditHandler(){
       }
       sfwrite(&mut,stdout,"%c",c);
    	}
-
+   	flock(logFD,LOCK_UN);
 }
 void uoffHandler(char* buffer){
 
@@ -555,7 +551,7 @@ void uoffHandler(char* buffer){
 	}
 
 	if(fd!=0){
-		printf("remove %s\n",token );
+		
 		write(fd,"disconnect",10);
 	}
 
@@ -645,9 +641,18 @@ void childCommand(int fd){
 
 
 	if(!strncmp(buffer,"remove",6)){
+		time_t rawtime;
+		struct tm*info;
+		char buff[1024];
 
-		sprintf(logBuffer,", %s, CMD, /close, success, chat\n",username);	
-		addLog(logBuffer);
+		time(&rawtime);
+
+		info = localtime(&rawtime);
+		strftime(buff,1024,"%x - %I:%M%p", info);
+		
+		sprintf(logBuffer,", %s, CMD, /close, success, chat\n",username);
+		strcat(buff,logBuffer);	
+		write(fd,buff,sizeof(buff));
 		removeChild(buffer);
 		return;
 	}
@@ -722,7 +727,7 @@ int Getaddrinfo(const char* host,
 	int resultt;
 	resultt = getaddrinfo(host,service,hints, result);
 	if(resultt != 0)
-		fprintf(stderr,"Getaddrinfo with error: %s\n",gai_strerror(resultt));
+		sfwrite(&mut,stderr,"Getaddrinfo with error: %s\n",gai_strerror(resultt));
 	return resultt;
 
 }
@@ -733,7 +738,7 @@ int Close(int clientfd){
 	int result;
 	result = close(clientfd);
 	if(result < 0)
-		fprintf(stderr,"Close with error: %s\n",strerror(errno));
+		sfwrite(&mut,stderr,"Close with error: %s\n",strerror(errno));
 	return result;
 }
 
@@ -760,9 +765,9 @@ void timeHandler(char* buf){
 	second=timeInSec%60;
 
 	color("blue",1);
-	fprintf(stdout, "Connected for ");
+	sfwrite(&mut,stdout, "Connected for ");
 	color("white",1);
-	fprintf(stdout, "%d hour(s) %d minute(s) and %d seconds(s)\n",
+	sfwrite(&mut,stdout, "%d hour(s) %d minute(s) and %d seconds(s)\n",
 						hour,minute,second );
 }
 
@@ -796,7 +801,7 @@ void listuHandler(char* buffer){
 	while(i<(index-1)){
 
 
-		fprintf(stdout, "user: %s\n",temp[i]);
+		sfwrite(&mut,stdout, "user: %s\n",temp[i]);
 		i=i+2;
 	}
 
@@ -815,8 +820,12 @@ void startChatHandler(char*buf){
 	strcpy(output[1],token);
 	token = strtok(NULL," ");
 	strcpy(output[2],token);
+
+	if(output[1]==NULL||output[2]==NULL){
+		return;
+	}
 	
-	printf("%s\n",output[1] );	
+
 	//construct output protocol
 	strcat(buffer,"MSG");
 	strcat(buffer," ");
@@ -891,7 +900,7 @@ void openChatHandler(char*buf){
 		  static const int child = 1;
 
 		  if(socketpair(AF_UNIX,SOCK_STREAM,0,pair)<0){
-		  	fprintf(stderr, "socketpair Error\n" );
+		  	sfwrite(&mut,stderr, "socketpair Error\n" );
 		  }
 	  
 		  if((pid = fork())==0){
@@ -1108,8 +1117,12 @@ void shutDown(){
 }
 
 void createLog(){
-
-	logFD = open("./audit.log",O_RDWR|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
+	if(audit==0){
+		logFD = open("./audit.log",O_RDWR|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
+	}else{
+		logFD = open(path,O_RDWR|O_CREAT,S_IWUSR|S_IRUSR|S_IXUSR);
+	}
+	
 	logS = fdopen(logFD,"a+");
 }
 void addLog(char* msg){
@@ -1124,7 +1137,9 @@ void addLog(char* msg){
 	info = localtime(&rawtime);
 	strftime(buffer,1024,"%x - %I:%M%p", info);
 	strcat(buffer,msg);
- 
+ 	
+ 	flock(logFD,LOCK_EX);
 	sfwrite(&mut,logS,"%s",buffer);
 	fflush(logS);
+	flock(logFD,LOCK_UN);
 }

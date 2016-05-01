@@ -108,8 +108,12 @@ void shutDown(){
   strcat(buffer," ");
   strcat(buffer,fdS);
   strcat(buffer," ");
+
   write(fd,buffer,1024);
-  
+  read(fd,buffer,sizeof(buffer));
+
+  write(logFD,buffer,1024);
+
   exit(EXIT_SUCCESS);
 
 }
