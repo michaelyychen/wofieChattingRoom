@@ -36,7 +36,14 @@
 
 int main (int argc, char ** argv) {
 
+	  if(argc<2){
 
+	  fprintf(stderr,"  Usage:\n" );
+	  fprintf(stderr,
+	  "	./tool LOGFILE \n 	LOGFILE The Log file to be open\n");
+	  exit(0);
+
+	  }
 	strcpy(path,argv[1]);
 	createLog();
 
@@ -99,38 +106,45 @@ void stdinCommand(){
 
 	fgets(buffer,1024,stdin);
 
-
-	if(!strcmp(buffer,"/close")){
-		
-		close( fd );
+	if(!strncmp(buffer,"/close",6)){
+		close(logFD);
+		close(fd);
 		inotify_rm_watch( fd, wd );
 	    
         exit(EXIT_SUCCESS);
-    }else if(!strcmp(buffer,"/help")){
-    	
-		fprintf(stdout,"Tool Commands:\n" );
-		
-		fprintf(stdout,
-		"/close			Exit the program.\n \
-		/log 			Print file to stdout\n \
-		/search <KEY>	Search	for the keyword			\n \
-		/help			List all the commands accepted by the program.			\n \
-		/sort <Column> <Order> Sort the specify column by ascending or descending.\n \
-		/filter			Filter based on any field.	\n ");
-    }else if(!strcmp(buffer,"/search")){
+    }else if(!strncmp(buffer,"/help",5)){
+    	helpCommand();
+	
+    }else if(!strncmp(buffer,"/search",7)){
+
+
     	ptr=strtok(buffer," ");	//search
+
     	ptr=strtok(NULL," ");	//serach criteria
+    	if(ptr==NULL){
+    		fprintf(stderr, "Missing Arguments\n" );
+    		helpCommand();
+    		return;
+    	}
     	ptr=strtok(ptr,"\n");
     	arguments[0]="grep";
     	arguments[1]=ptr;
     	arguments[2]=path;
     	run();
-    }else if(!strcmp(buffer,"/log")){
+
+
+    }else if(!strncmp(buffer,"/log",4)){
     	auditHandler();
-    }else if(!strcmp(buffer,"/sort")){
+    }else if(!strncmp(buffer,"/sort",5)){
 
     	ptr=strtok(buffer," ");	//sort
     	ptr=strtok(NULL," ");	//sort criteria
+
+    	if(ptr==NULL){
+    		fprintf(stderr, "Missing Arguments\n" );
+    		helpCommand();
+    		return;
+    	}
 
     	if(!strcmp(ptr,"date")){
     		arguments[2]="1";
@@ -142,7 +156,11 @@ void stdinCommand(){
     		arguments[2]="5";
     	}
     	ptr=strtok(NULL," ");	//ascending/descending
-    	ptr=strtok(ptr,"\n");
+    	if(ptr==NULL){
+    		fprintf(stderr, "Missing Arguments\n" );
+    		helpCommand();
+    		return;
+    	}
 
     	if(!strncmp(ptr,"asc",3)){
 	    	arguments[0]="sort";
@@ -224,4 +242,13 @@ void colors(char* color){
     }
 
     write(1,&mm,1);
+}
+void helpCommand(){
+	fprintf(stdout,"Tool Commands:\n\
+	/close			Exit the program.\n\
+	/log 			Print file to stdout\n\
+	/search <KEY>		Search	for the keyword			\n\
+	/help			List all the commands accepted by the program.			\n\
+	/sort <Column> <Order> Sort the specify column by ascending or descending.\n\
+	/filter			Filter based on any field.	\n");
 }
