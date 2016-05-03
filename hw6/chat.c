@@ -13,6 +13,7 @@
 #include <netdb.h>
 #include <sys/un.h>
 #include <sys/select.h>
+#include <semaphore.h>
 #include "myHeader.h"
 
 

@@ -1142,7 +1142,7 @@ void addLog(char* msg){
 	time(&rawtime);
 
 	info = localtime(&rawtime);
-	strftime(buffer,1024,"%x - %I:%M%p", info);
+	strftime(buffer,1024,"%F - %H:%M", info);
 	strcat(buffer,msg);
  	
  	flock(logFD,LOCK_EX);

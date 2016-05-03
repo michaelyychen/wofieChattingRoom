@@ -118,3 +118,8 @@ void loginQueueInsert(int clientfd);
 int loginQueueRemove();
 void P(sem_t *s);
 void V(sem_t *s);
+
+void colors(char* color);
+void fileModified();
+
+////////////////////////////////////////////////

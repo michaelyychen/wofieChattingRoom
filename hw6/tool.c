@@ -16,6 +16,7 @@
 #include <sys/un.h>
 #include <sys/select.h>
 #include <termios.h>
+#include <semaphore.h>
 #include "myHeader.h"
 #include <sys/inotify.h>
 
@@ -64,9 +65,11 @@ int main (int argc, char ** argv) {
 	while(1){
 	//fprintf(stdout,"Enter Command: ");	
 
-  	
+  	colors("green");
 	fprintf(stdout,"Enter Command: ");
 	fflush(stdout);
+	colors("white");
+
 	ready_set=read_set;
 
     select(fd+1,&ready_set,NULL,NULL,NULL);
@@ -105,8 +108,13 @@ void run(){
 void stdinCommand(){
 
 	fgets(buffer,1024,stdin);
+	char * index;
 
-	if(!strncmp(buffer,"/close",6)){
+
+	if((index=strchr(buffer,'\n'))!=NULL)
+        *index = '\0';
+
+	if(!strcmp(buffer,"/close")){
 		close(logFD);
 		close(fd);
 		inotify_rm_watch( fd, wd );
@@ -117,7 +125,6 @@ void stdinCommand(){
 	
     }else if(!strncmp(buffer,"/search",7)){
 
-
     	ptr=strtok(buffer," ");	//search
 
     	ptr=strtok(NULL," ");	//serach criteria
@@ -126,15 +133,46 @@ void stdinCommand(){
     		helpCommand();
     		return;
     	}
-    	ptr=strtok(ptr,"\n");
+    	
     	arguments[0]="grep";
     	arguments[1]=ptr;
     	arguments[2]=path;
     	run();
 
 
-    }else if(!strncmp(buffer,"/log",4)){
+    }else if(!strcmp(buffer,"/log")){
     	auditHandler();
+    }else if(!strncmp(buffer,"/filter",7)){
+    	ptr=strtok(buffer," ");// filter
+    	ptr=strtok(NULL," "); //date or time
+
+    	char start[50];
+    	char end[50];
+    	char temp [1024];
+    	if(!strcmp(ptr,"date")){
+    		ptr=strtok(NULL," ");
+    		strcpy(start,ptr);
+    		ptr=strtok(NULL," ");
+    		strcpy(end,ptr);
+
+	    	arguments[0]="sed";
+	    	arguments[1]="-n";
+	    	sprintf(temp,"/%s/,/%s/p",start,end);
+	    	
+	    	arguments[2]=temp;
+	    	arguments[3]=path;
+
+	    	run();
+    	}else if(!strcmp(ptr,"time")){
+
+
+
+    	}else{
+
+
+
+    	}
+
     }else if(!strncmp(buffer,"/sort",5)){
 
     	ptr=strtok(buffer," ");	//sort
@@ -244,11 +282,14 @@ void colors(char* color){
     write(1,&mm,1);
 }
 void helpCommand(){
-	fprintf(stdout,"Tool Commands:\n\
-	/close			Exit the program.\n\
+	colors("blue");
+	fprintf(stdout,"Tool Commands:\n");
+	fflush(stdout);
+	colors("white");
+	fprintf(stdout,"	/close			Exit the program.\n\
 	/log 			Print file to stdout\n\
 	/search <KEY>		Search	for the keyword			\n\
 	/help			List all the commands accepted by the program.			\n\
 	/sort <Column> <Order> Sort the specify column by ascending or descending.\n\
-	/filter			Filter based on any field.	\n");
+	/filter	<date/time> <start> <end> Filter based on any field.	\n");
 }
