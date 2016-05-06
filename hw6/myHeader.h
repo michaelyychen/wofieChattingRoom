@@ -11,6 +11,9 @@ int Close(int clientfd);
 void Select(int n,fd_set *set);
 
 void auditHandler();
+void run();
+void fileModified();
+void colors(char* color);
 //printout usage table
 void HELP();
 //printout all the commands client accepts

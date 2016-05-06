@@ -7,7 +7,8 @@ chat: chat.c
 	gcc -Wall -Werror  -g -o chat chat.c 
 
 tool: tool.c
-	gcc -Wall -Werror  -g -o tool tool.c
+	gcc -Wall -Werror  -g -o tool tool.c 
+
 
 server: server.o sfwrite.o
 	gcc -Wall -Werror -g -o server server.o sfwrite.o -pthread -lcrypto -lssl
