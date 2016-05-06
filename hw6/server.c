@@ -695,7 +695,7 @@ void* talkThread(void* vargp){
 				length += strlen(temp->name);
 				if(temp->next != NULL){
 					strcat(buf," \r\n ");
-					length += 3;
+					length += 4;
 				}
 				temp = temp->next;
 			}
