@@ -675,7 +675,6 @@ void childCommand(int fd){
     	}
     	temp = temp->next;
     }
-
     memset(responseBUf,0,1024);
 
     strcat(responseBUf,"MSG ");
@@ -896,7 +895,7 @@ void openChatHandler(char*buf){
 	  }
 	  //don't need to fork, writeV message to child directly
 	  if(window>0){
-
+	  
 	  	strcat(output,msg);
 	  	writeV(window,output,sizeof(output));
 

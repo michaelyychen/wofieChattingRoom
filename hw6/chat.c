@@ -76,6 +76,10 @@ int main(int argc, char *argv[]) {
           if(!strncmp(buffer,"/close",6)){
             shutDown();
           }
+          if(!strcmp(buffer,"\n")){
+            continue;
+          }
+          
 
       if((index=strchr(buffer,'\n'))!=NULL)
         *index = '\0';
