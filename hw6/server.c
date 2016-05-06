@@ -67,6 +67,7 @@ struct loginQueue{
 typedef struct loginQueue loginQueue;
 
 /*global variables*/
+int shut = 0;
 int listenfd;
 int acctFd = 0;
 int verbose = 0;
@@ -82,12 +83,14 @@ loginQueue loginQ;
 pthread_mutex_t mut;
 pthread_mutex_t userLock;
 pthread_mutex_t acctLock;
+pthread_mutex_t loginLock;
 
 int main (int argc, char ** argv){
 
 	pthread_mutex_init(&mut,NULL);
 	pthread_mutex_init(&userLock,NULL);
 	pthread_mutex_init(&acctLock,NULL);
+	pthread_mutex_init(&loginLock,NULL);
 
 	signal(SIGINT,sigInt_handler);
 
@@ -500,9 +503,7 @@ void *loginThreadC(void * clientfd){
 				 color("white",1);
 				 log=0;
 			 }
-
 		 	 log = newUser((void*)pair, name1);
-
 
 		 }else{
 			 color("red",1);
@@ -511,21 +512,8 @@ void *loginThreadC(void * clientfd){
 			 log=0;
 			 /*login fail*/
 		 }
-
-
 	   if(log){
-
-		   User* temp = (User*)addUser(name1,pair);
 		   sfwrite(&mut,stdout,"login sucess! %s\n",name1);
-
-		   /*create communication thread*/
-		   pthread_t tid;
-		   if(pthread_create(&tid,NULL,talkThread,temp)){
-	   		color("red",1);
-	   		sfwrite(&mut,stderr,"Error on create thread\n");
-	   		color("white",1);
-	   		}
-
 	   }else{
 		   color("red",1);
 	   		sfwrite(&mut,stderr,"login fail!\n");
@@ -540,21 +528,26 @@ int existUser(void *Cpair, char *name){
 	communicatePair *pair = Cpair;
 	/*check if user already login in*/
 	int loginS;
+		pthread_mutex_lock(&loginLock);
 		 if((loginS = checkLogin(name,1))<0){
 		 	if(loginS == -1){
 			 color("red",1);
 			 sfwrite(&mut,stderr,"same username\n");
 			 color("white",1);
 			 handleError(nameTaken,pair->fd);
+			 pthread_mutex_unlock(&loginLock);
 			 return 0;
-			}else if(loginS == -1){
+		 }else if(loginS == -2){
 				color("red",1);
-				 sfwrite(&mut,stderr,"same username\n");
+				 sfwrite(&mut,stderr,"not Available\n");
 				 color("white",1);
 				 handleError(notAvailable,pair->fd);
+				 pthread_mutex_unlock(&loginLock);
 				 return 0;
 			}
 		 }
+		  User* temp = (User*)addUser(name,pair);
+		  pthread_mutex_unlock(&loginLock);
 			/*return message to client*/
 
 		   char msg[MAXLINE];
@@ -577,6 +570,15 @@ int existUser(void *Cpair, char *name){
 				   strcat(msg,welcomeMessage);
 				   strcat(msg," \r\n\r\n");
 				   writeV(pair->fd,msg,MAXLINE);
+
+				   /*create communication thread*/
+				   pthread_t tid;
+				   if(pthread_create(&tid,NULL,talkThread,temp)){
+			   		color("red",1);
+			   		sfwrite(&mut,stderr,"Error on create thread\n");
+			   		color("white",1);
+			   		}
+
 		   		}else{
 		   			handleError(badPassword,pair->fd);
 		   			return 0;
@@ -592,20 +594,22 @@ int existUser(void *Cpair, char *name){
 }
 
 
-
-
 int newUser(void *Cpair, char *name){
 
 	communicatePair *pair = Cpair;
 
 	char buf[MAXLINE];
+	pthread_mutex_lock(&loginLock);
 	if(checkLogin(name,0)==0){
 			 color("red",1);
 			 sfwrite(&mut,stderr,"same username\n");
 			 color("white",1);
 			 handleError(nameTaken,pair->fd);
+			 pthread_mutex_unlock(&loginLock);
 			 return 0;
 		 }
+		User* temp = (User*)addUser(name,pair);
+	pthread_mutex_unlock(&loginLock);
 	/*say hi*/
 	strcpy(buf,"HINEW ");
 	strcat(buf,name);
@@ -630,6 +634,15 @@ int newUser(void *Cpair, char *name){
 		strcat(buf,welcomeMessage);
 		strcat(buf," \r\n\r\n");
 		writeV(pair->fd,buf,(30+strlen(welcomeMessage)+strlen(name)));
+
+		/*create communication thread*/
+		pthread_t tid;
+		if(pthread_create(&tid,NULL,talkThread,temp)){
+		 color("red",1);
+		 sfwrite(&mut,stderr,"Error on create thread\n");
+		 color("white",1);
+		 }
+
 		return 1;
 
 	}else{
@@ -647,7 +660,7 @@ void* talkThread(void* vargp){
 
 	char buf[MAXLINE];
 
-	while(1){
+	while(1 && !shut){
 		memset(buf,0,MAXLINE);
 		Read(user->clientSock,buf,MAXLINE);
 		if(!strcmp(buf,"TIME \r\n\r\n")){
@@ -864,9 +877,12 @@ int checkLogin(char *name, int exist){
 	while(temp!=NULL){
 		if(!strcmp(temp->name,name))
 			currentlyIn = 0;
+
 		temp = temp->next;
 	}
+	pthread_mutex_unlock(&userLock);
 
+	pthread_mutex_lock(&acctLock);
 	accountList *acc = accHead;
 	while(acc!=NULL){
 		if(!strcmp(acc->name,name)){
@@ -875,8 +891,8 @@ int checkLogin(char *name, int exist){
 		}
 		acc = acc->next;
 	}
+	pthread_mutex_unlock(&acctLock);
 
-	pthread_mutex_unlock(&userLock);
 
 	if(exist){
 		if(hasAccount){
@@ -890,7 +906,7 @@ int checkLogin(char *name, int exist){
 	}
 
 	else
-		return !hasAccount;
+		return !hasAccount&&currentlyIn;
 
 }
 
@@ -943,6 +959,7 @@ void accts(){
 }
 
 void shutDown(){
+	shut = 1;
 	if(loginThreadCount!=0)
 		loginQueueClean();
 	cleanUp();
