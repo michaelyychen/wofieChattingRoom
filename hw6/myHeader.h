@@ -95,7 +95,7 @@ void users();
 void shutDown();
 void parseArg(int fd,char arguments[10][1024]);
 void *talkThread(void* vargp);
-void removeUser(int fd);
+void removeUser(int fd, int commandFrom);
 void intToS(char *buf,int t);
 void accts();
 void getHash(void *acct,char *pwd);

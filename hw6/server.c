@@ -581,12 +581,12 @@ int existUser(void *Cpair, char *name){
 
 		   		}else{
 		   			handleError(badPassword,pair->fd);
-		   			removeUser(-1);
+		   			
 		   			return 0;
 		   		}
 		   }else{
 		   		sfwrite(&mut,stderr,"Verb PASS is not received\n");
-		   		removeUser(-1);
+		   		removeUser(pair->fd,0);
 		   		return 0;
 		   }
 
@@ -650,7 +650,7 @@ int newUser(void *Cpair, char *name){
 	}else{
 		/*handle bad password*/
 		handleError(badPassword,pair->fd);
-		removeUser(-1);
+		
 		return 0;
 	}
 
@@ -708,7 +708,7 @@ void* talkThread(void* vargp){
 			memset(buf,0,MAXLINE);
 			strcpy(buf,"BYE \r\n\r\n");
 			writeV(user->clientSock,buf,8);
-			removeUser(user->clientSock);
+			removeUser(user->clientSock,1);
 			break;
 
 		}else if(!strncmp(buf,"MSG",3)){
@@ -797,12 +797,13 @@ void* addUser(char *name, void *pair){
 	return (void*)newUser;
 }
 
-void removeUser(int fd){
-
+void removeUser(int fd, int commandFrom){
+	/*commandFrom, 1 if for regular usage, else from error*/
 	User *temp, *prev;
 	char buf[MAXLINE];
 	char name[1000];
 	memset(name,0,1000);
+
 	temp = userHead;
 	prev = temp;
 
@@ -820,33 +821,28 @@ void removeUser(int fd){
 			userHead = NULL;
 		}
 	}
-
-
 	strcpy(name,temp->name);
 
-	if(fd == -1){
-
-	}
-	else{	
-		Close(temp->clientSock);
-	}
+	
+	Close(temp->clientSock);
+	
 
 	prev->next = temp->next;
 	free(temp);
 
 
 	/*send uoff to all other users*/
+	if(commandFrom==1){
+		strcpy(buf,"UOFF ");
+		strcat(buf,name);
+		strcat(buf," \r\n\r\n");
 
-	strcpy(buf,"UOFF ");
-	strcat(buf,name);
-	strcat(buf," \r\n\r\n");
-
-	temp = userHead;
-	while(temp!=NULL){
-		writeV(temp->clientSock,buf,(10+strlen(name)));
-		temp = temp->next;
-	}
-
+		temp = userHead;
+		while(temp!=NULL){
+			writeV(temp->clientSock,buf,(10+strlen(name)));
+			temp = temp->next;
+		}
+	}	
 	pthread_mutex_unlock(&userLock);
 
 }
@@ -866,7 +862,7 @@ void handleError(int error_code,int fd){
 		Close(fd);
 	}else if(error_code==badPassword){
 		writeV(fd,"ERR 02 BAD PASSWORD \r\n\r\nBYE \r\n\r\n",32);
-		Close(fd);
+		removeUser(fd,0);
 	}else if(error_code==notAvailableLog){
 		writeV(fd,"ERR 01 USER NOT AVAILABLE \r\n\r\nBYE \r\n\r\n",50);
 
