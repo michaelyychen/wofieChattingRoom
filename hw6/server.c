@@ -581,10 +581,12 @@ int existUser(void *Cpair, char *name){
 
 		   		}else{
 		   			handleError(badPassword,pair->fd);
+		   			removeUser(-1);
 		   			return 0;
 		   		}
 		   }else{
 		   		sfwrite(&mut,stderr,"Verb PASS is not received\n");
+		   		removeUser(-1);
 		   		return 0;
 		   }
 
@@ -648,6 +650,7 @@ int newUser(void *Cpair, char *name){
 	}else{
 		/*handle bad password*/
 		handleError(badPassword,pair->fd);
+		removeUser(-1);
 		return 0;
 	}
 
@@ -821,7 +824,13 @@ void removeUser(int fd){
 
 	strcpy(name,temp->name);
 
-	Close(temp->clientSock);
+	if(fd == -1){
+
+	}
+	else{	
+		Close(temp->clientSock);
+	}
+
 	prev->next = temp->next;
 	free(temp);
 
@@ -834,7 +843,7 @@ void removeUser(int fd){
 
 	temp = userHead;
 	while(temp!=NULL){
-		writeV(temp->clientSock,buf,(9+strlen(name)));
+		writeV(temp->clientSock,buf,(10+strlen(name)));
 		temp = temp->next;
 	}
 
