@@ -9,14 +9,15 @@ chat: chat.c
 tool: tool.c
 	gcc -Wall -Werror  -g -o tool tool.c 
 
+
 server: server.o sfwrite.o
-	gcc -Wall -Werror -o server server.o sfwrite.o -pthread -lcrypto -lssl
+	gcc -Wall -Werror -g -o server server.o sfwrite.o -pthread -lcrypto -lssl
 
 client.o: client.c 
 	gcc -Wall -Werror -g -c client.c
 
 server.o: server.c 
-	gcc -Wall -Werror -c server.c
+	gcc -Wall -Werror -g -c server.c
 
 sfwrite.o: sfwrite.c
 	gcc -Wall -Werror -c sfwrite.c
