@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include <sys/file.h>
 #include <errno.h>
 #include <signal.h>
 #include <sys/types.h>
@@ -13,9 +15,12 @@
 #include <netdb.h>
 #include <sys/un.h>
 #include <sys/select.h>
+#include <termios.h>
+#include <pthread.h>
+#include <time.h>
 #include <semaphore.h>
 #include "myHeader.h"
-
+#include "sfwrite.h"
 
 
 #define MAXLINE 1024
@@ -26,7 +31,7 @@ char buffer[1024];
 char fdS[20];
 int fd;
 int logFD;
-
+pthread_mutex_t mut;
 void sigInt_handler(int sigID){
    shutDown();
        
@@ -35,7 +40,7 @@ void sigInt_handler(int sigID){
 
 int main(int argc, char *argv[]) {
 
-
+  pthread_mutex_init(&mut,NULL);
   signal(SIGINT,sigInt_handler);
 
   if(argc<3){
@@ -117,7 +122,11 @@ void shutDown(){
   write(fd,buffer,1024);
   read(fd,buffer,sizeof(buffer));
 
-  write(logFD,buffer,1024);
+  flock(logFD,LOCK_EX);
+  FILE * logS = fdopen(logFD,"a+");
+  sfwrite(&mut,logS,"%s",buffer);
+  fflush(logS);
+  flock(logFD,LOCK_UN);
 
   exit(EXIT_SUCCESS);
 

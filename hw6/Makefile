@@ -4,7 +4,7 @@ client: client.o sfwrite.o
 	gcc -Wall -Werror -g -o client client.o sfwrite.o -pthread
 
 chat: chat.c
-	gcc -Wall -Werror  -g -o chat chat.c 
+	gcc -Wall -Werror  -g -o chat chat.c sfwrite.o -pthread
 
 tool: tool.c
 	gcc -Wall -Werror  -g -o tool tool.c 

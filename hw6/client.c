@@ -649,11 +649,13 @@ void childCommand(int fd){
 		time(&rawtime);
 
 		info = localtime(&rawtime);
-		strftime(buff,1024,"%x - %I:%M%p", info);
+		strftime(buff,1024,"%F - %H:%M", info);
 		
 		sprintf(logBuffer,", %s, CMD, /close, success, chat\n",username);
 		strcat(buff,logBuffer);	
-		write(fd,buff,sizeof(buff));
+
+		write(fd,buff,49+strlen(username));
+		read(fd,buff,sizeof(buff));
 		removeChild(buffer);
 		return;
 	}
