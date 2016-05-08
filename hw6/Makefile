@@ -23,5 +23,5 @@ sfwrite.o: sfwrite.c
 	gcc -Wall -Werror -c sfwrite.c
 
 clean:
-	rm -f *~ *.o server client chat
+	rm -f *~ *.o server client chat tool
 	
